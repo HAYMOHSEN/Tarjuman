@@ -35,6 +35,8 @@ voice:
 - Neutral: clear everyday language.
 - Casual — friends: warm and conversational. For messages and personal notes.
 - Marketing: short, punchy, persuasive. For ads, posts and product copy.
+- Literary: for poetry, stories and lyrical prose — every image stays an image, verse keeps its
+  lines, and a "Polish" pass revises any paragraph like a literary editor.
 
 Choose how the reader is addressed (formal "vous / Sie / حضرتكم" or informal), add a one-line note
 about the audience, and for Arabic pick Modern Standard, simplified Standard, or an experimental
@@ -43,7 +45,8 @@ language and only change the tone.
 
 Idioms, metaphors and proverbs are rendered by meaning, never word for word. The "Explain idioms"
 button on any paragraph lists the expressions found, what they mean literally, how they were
-rendered and the cultural context behind them. Switch on "Localize cultural references" to swap
+rendered and the cultural context behind them — including wordplay such as jinās and double
+meanings, with every sense of the repeated words spelled out. Switch on "Localize cultural references" to swap
 sports, food and holiday references for ones the reader will recognize.
 
 Whole documents, not just snippets:
@@ -71,12 +74,15 @@ Nabra contains no accounts, no ads, no analytics and no tracking.
 العقود السرية ومستندات الموارد البشرية ورسائل العملاء والرسائل الشخصية دون أن تُرفع إلى أي خادم.
 
 وهو أكثر من مترجم: اختر الأسلوب الذي تحتاجه ليكتب الترجمة بالنبرة المناسبة — رسمي للشركات والخطابات
-والعقود، أكاديمي للأبحاث والتقارير، محايد، ودّي للأصدقاء والرسائل، أو تسويقي للإعلانات والمنشورات.
+والعقود، أكاديمي للأبحاث والتقارير، محايد، ودّي للأصدقاء والرسائل، تسويقي للإعلانات والمنشورات، أو أدبي
+للشعر والقصص والنثر الفني حيث تبقى كل صورة صورةً، ويحافظ الشعر على أبياته، وزر «صقل» يراجع أي فقرة كما
+يفعل محرر أدبي.
 حدّد طريقة مخاطبة القارئ (رسمية أو غير رسمية)، وأضف سطراً عن الجمهور، واختر للعربية الفصحى أو الفصحى
 المبسطة أو عامية تجريبية (شامية، خليجية، مصرية). ترجم بين اللغات، أو أبقِ اللغة نفسها وغيّر النبرة فقط.
 
 تُنقل التعابير الاصطلاحية والأمثال والاستعارات بمعناها لا حرفياً، وزر «شرح التعابير» يعرض لكل فقرة
-التعابير التي وُجدت ومعناها الحرفي وكيف تُرجمت وسياقها الثقافي. فعّل «توطين الإشارات الثقافية»
+التعابير التي وُجدت ومعناها الحرفي وكيف تُرجمت وسياقها الثقافي، بما في ذلك الجناس والتورية مع بيان
+المعاني المختلفة للكلمات المتشابهة. فعّل «توطين الإشارات الثقافية»
 لاستبدال الإشارات الرياضية والغذائية والمناسبات بما يعرفه القارئ.
 
 مستندات كاملة لا مقاطع فقط: ملفات وورد مع الحفاظ على الأنماط والعناوين والترقيم والجداول وضبط الاتجاه
@@ -91,10 +97,12 @@ Nabra contains no accounts, no ads, no analytics and no tracking.
 ## Product features (one per line, ≤ 200 characters each)
 
 - Translates between 22 languages entirely on your PC — nothing is uploaded
-- Five registers: formal corporate, academic, neutral, casual, marketing
+- Six registers: formal corporate, academic, neutral, casual, marketing, literary
 - Rewrite mode: keep the language, change only the tone
 - Formal or informal address, audience note, Arabic variety (Standard, simplified, colloquial)
-- Idioms and proverbs translated by meaning, with an "Explain idioms" review per paragraph
+- Idioms and proverbs translated by meaning, with an "Explain idioms" review per paragraph (wordplay included)
+- Literary mode for poetry and prose, with a per-paragraph "Polish" pass
+- Low-memory mode and automatic release of graphics memory when idle
 - Localize cultural references for the target reader
 - Word (.docx) files keep styles, headings, numbering and tables; RTL layout set automatically
 - PDF, text, Markdown and subtitle (.srt) files
@@ -125,7 +133,7 @@ translator, offline translation, Arabic translator, formal tone, document transl
 
 **Notes field:** "Nabra runs an AI language model on the graphics chip through WebGPU. The engine is
 downloaded once on first launch (Mini 0.6 GB, Light 1.1 GB, Standard 2.4 GB, Pro 5 GB) and the app
-then works fully offline. Translation speed depends on the graphics adapter: a few seconds per
+then works fully offline. A low-memory mode in Settings trims graphics-memory use for 8 GB machines. Translation speed depends on the graphics adapter: a few seconds per
 paragraph on a modern integrated GPU, faster on a dedicated GPU. Scanned PDFs without a text layer
 are not supported."
 

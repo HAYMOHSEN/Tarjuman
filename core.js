@@ -54,6 +54,11 @@ export const REGISTERS = {
     hint_en: 'Ads, posts, product copy', hint_ar: 'الإعلانات والمنشورات ونصوص المنتجات',
     rule: 'Energetic marketing register: short punchy sentences, direct address to the reader, vivid verbs, headline-friendly; persuasive but every claim stays faithful to the source.',
   },
+  literary: {
+    en: 'Literary — poetry and prose', ar: 'أدبي — شعر ونثر فني',
+    hint_en: 'Verse, stories, lyrical prose', hint_ar: 'الشعر والقصص والنثر الشعري',
+    rule: 'Literary register, as a published literary translator would write: every image, metaphor and symbol is carried across as an image, never explained, simplified or replaced by its plain meaning; keep the order of the images and the rhythm of the sentences; prefer one precise, evocative word to a safe paraphrase; keep the elevated or archaic diction where the source has it; keep ambiguity ambiguous; no clichés, no added connectors, no softening of grief, violence or desire.',
+  },
 };
 
 export const VARIETIES = {
@@ -104,7 +109,7 @@ function glossaryLines(glossary) {
   return 'Glossary — apply these renderings exactly and consistently:\n' + lines.join('\n');
 }
 
-export function buildSystemPrompt(card) {
+export function buildSystemPrompt(card, opts = {}) {
   const src = languageByCode(card.source);
   const tgt = languageByCode(card.target);
   const register = REGISTERS[card.register] || REGISTERS.neutral;
@@ -125,7 +130,12 @@ export function buildSystemPrompt(card) {
     const variety = VARIETIES[card.variety] || VARIETIES.msa;
     parts.push(variety.rule);
   }
-  parts.push('Idioms, metaphors, proverbs and wordplay: render their meaning the way a native writer would say it; never translate them word for word.');
+  if (card.register === 'literary') {
+    parts.push('Idioms and proverbs: use the closest idiom of the target language if one exists, otherwise translate the image itself. Wordplay and paronomasia: keep the play if the target language allows it; if not, keep the dominant meaning and the sound-pattern where possible.');
+    if (opts.verse) parts.push('The text is verse. Output exactly the same number of lines in the same order; never merge or split lines; keep hemistich separators and the punctuation of the source; do not add punctuation the source lacks.');
+  } else {
+    parts.push('Idioms, metaphors, proverbs and wordplay: render their meaning the way a native writer would say it; never translate them word for word.');
+  }
   parts.push(card.localize
     ? `Cultural references (sports, food, holidays, institutions): replace them with equivalents familiar to ${tgt.name} readers when a literal reference would confuse them.`
     : 'Cultural references: keep them, and make them understandable in context without adding commentary.');
@@ -140,15 +150,18 @@ export function buildSystemPrompt(card) {
 
 export function buildTranslateMessages(card, text) {
   return [
-    { role: 'system', content: buildSystemPrompt(card) },
+    { role: 'system', content: buildSystemPrompt(card, { verse: looksLikeVerse(text) }) },
     { role: 'user', content: text },
   ];
 }
 
 export function buildBatchMessages(card, segments) {
   const numbered = segments.map((s, i) => `${i + 1}) ${s}`).join('\n');
-  const system = buildSystemPrompt(card)
-    + `\nThe user sends ${segments.length} numbered segments. Treat each segment independently, output the same numbers in the same order, exactly one segment per line, in the form "1) text". Never merge, drop or renumber segments.`;
+  const relation = card.register === 'literary'
+    ? 'The segments are consecutive lines of one text: let the sense run across them, but'
+    : 'Treat each segment independently,';
+  const system = buildSystemPrompt(card, { verse: card.register === 'literary' && segments.some(looksLikeVerse) })
+    + `\nThe user sends ${segments.length} numbered segments. ${relation} output the same numbers in the same order, exactly one segment per line, in the form "1) text". Never merge, drop or renumber segments.`;
   return [
     { role: 'system', content: system },
     { role: 'user', content: numbered },
@@ -159,15 +172,36 @@ export function buildExplainMessages(card, sourceText, translatedText, notesLang
   const tgt = languageByCode(card.target);
   const notes = notesLang === 'ar' ? 'Arabic' : 'English';
   const system = [
-    'You are a translation reviewer.',
+    'You are a translation reviewer and a philologist.',
     `The user gives a source paragraph and its translation into ${tgt.name}.`,
-    'Find the idioms, metaphors, proverbs, wordplay and culturally specific references in the source paragraph.',
-    'For each one write exactly one line in this form:',
-    'original expression — literal meaning — how the translation renders it — one short note on the cultural context.',
+    'Find the idioms, metaphors, proverbs, allusions, culturally specific references and wordplay in the source paragraph.',
+    'Wordplay includes paronomasia (jinās: words that look or sound alike with different meanings), double meanings (tawriya), puns and deliberate repetition of a root.',
+    'For each finding write exactly one line in this form:',
+    'original expression — literal meaning — how the translation renders it — one short note on the cultural or rhetorical context.',
+    'For wordplay, the "literal meaning" part lists every distinct meaning of the repeated or look-alike words, and the note says what the translation kept and what no translation could keep.',
     `Write the notes in ${notes}. Keep the original expression in its own language.`,
     'Output only those lines. If there are none, reply with the single word NONE.',
   ].join('\n');
   const user = `Source:\n${sourceText}\n\nTranslation:\n${translatedText}`;
+  return [
+    { role: 'system', content: system },
+    { role: 'user', content: user },
+  ];
+}
+
+export function buildPolishMessages(card, sourceText, draft) {
+  const tgt = languageByCode(card.target);
+  const register = REGISTERS[card.register] || REGISTERS.neutral;
+  const system = [
+    `You are a senior literary translator and editor revising a colleague's draft translation into ${tgt.name}.`,
+    'The user gives the source text and the draft.',
+    'Revise the draft so that it reads as if written by a native author in the target language while matching the source image for image and sentence for sentence.',
+    `Register: ${register.rule}`,
+    'Fix every place where the draft is literal, clumsy, over-explained, or loses an image, a nuance, a rhythm or an ambiguity of the source. Keep what is already good.',
+    'Keep every fact, name, number and the line and paragraph structure unchanged.',
+    `Output only the revised ${tgt.name} text, nothing else.`,
+  ].join('\n');
+  const user = `Source:\n${sourceText}\n\nDraft:\n${draft}`;
   return [
     { role: 'system', content: system },
     { role: 'user', content: user },
@@ -470,6 +504,41 @@ export function linesToParagraphs(lines) {
 }
 
 /* ---------- Small utilities ---------- */
+
+/** Remove Arabic diacritics (harakat, tanwin, shadda, sukun, superscript alef, Quranic marks) and tatweel.
+ *  The letters are untouched, so the text stays readable and tokenizes far more compactly. */
+export function stripTashkeel(text) {
+  return (text || '').replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E4\u06E7\u06E8\u06EA-\u06ED\u0640]/g, '');
+}
+
+/** Text to send to the engine. Diacritics are dropped to save tokens — unless dropping them
+ *  makes words collapse into each other (jinās: أَلَمٌ أَلَمَّ أَلَمْ أُلِمَّ), where the vocalization
+ *  is the only thing that tells the meanings apart, so the original is kept. */
+export function prepareForModel(text) {
+  const stripped = stripTashkeel(text);
+  if (stripped === text) return text;
+  const words = (s) => s.split(/[\s،,.;:؛!?؟()«»"'…]+/).filter((w) => w.length > 1);
+  const dupes = (ws) => {
+    const seen = new Set();
+    let d = 0;
+    for (const w of ws) {
+      if (seen.has(w)) d++;
+      else seen.add(w);
+    }
+    return d;
+  };
+  return dupes(words(stripped)) > dupes(words(text)) ? text : stripped;
+}
+
+/** Heuristic: several short lines, or classical hemistichs marked with "…"/"...", read as verse. */
+export function looksLikeVerse(text) {
+  const lines = (text || '').split('\n').map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return false;
+  const avg = lines.reduce((n, l) => n + l.length, 0) / lines.length;
+  if (lines.length >= 3 && avg <= 70) return true;
+  if (lines.length >= 2 && lines.every((l) => /(\.{3}|…|\s{3,}|\*{2,})/.test(l))) return true;
+  return lines.length === 1 && /(\.{3}|…)\s*\S/.test(lines[0]) && lines[0].length <= 160;
+}
 
 export function countWords(text) {
   const t = (text || '').trim();

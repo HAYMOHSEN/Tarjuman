@@ -149,4 +149,28 @@ if (DOMParser) t('new docx xml is well formed', () => {
   assert.ok(s.documentElement.localName === 'styles');
 });
 
+
+t('literary register, verse detection, tashkeel', () => {
+  const s = 'يَتَشَظَّى الوَقْتُ عَلَى رَصِيفِ الانْتِظَارِ';
+  assert.equal(core.stripTashkeel(s), 'يتشظى الوقت على رصيف الانتظار');
+  assert.ok(core.looksLikeVerse('أَلَمٌ أَلَمَّ أَلَمْ أُلِمَّ بِدَائِهِ ... إِنْ آنَ آنٌ آنَ آنُ أَوَانِهِ'));
+  assert.ok(core.looksLikeVerse('a\nb\nc'));
+  assert.ok(!core.looksLikeVerse('A long prose paragraph that goes on and on without any line breaks at all, so it is not verse.'));
+  const card = { source: 'ar', target: 'en', register: 'literary' };
+  const msgs = core.buildTranslateMessages(card, 'line one\nline two\nline three');
+  assert.ok(msgs[0].content.includes('The text is verse'));
+  assert.ok(msgs[0].content.includes('carried across as an image'));
+  assert.ok(!core.buildSystemPrompt(card).includes('The text is verse'));
+  assert.ok(core.buildBatchMessages(card, ['a', 'b'])[0].content.includes('consecutive lines'));
+  assert.ok(core.buildBatchMessages({ ...card, register: 'neutral' }, ['a', 'b'])[0].content.includes('independently'));
+  const ex = core.buildExplainMessages(card, 'x', 'y', 'ar')[0].content;
+  assert.ok(ex.includes('jinās') && ex.includes('Arabic'));
+  const po = core.buildPolishMessages(card, 'src', 'draft');
+  assert.ok(po[0].content.includes('revising') && po[1].content.includes('Draft:\ndraft'));
+  assert.ok(core.REGISTERS.literary && Object.keys(core.REGISTERS).length === 6);
+  const jinas = 'أَلَمٌ أَلَمَّ أَلَمْ أُلِمَّ بِدَائِهِ ... إِنْ آنَ آنٌ آنَ آنُ أَوَانِهِ';
+  assert.equal(core.prepareForModel(jinas), jinas, 'vocalization kept when words would collapse');
+  assert.equal(core.prepareForModel(s), 'يتشظى الوقت على رصيف الانتظار');
+  assert.ok(core.buildBatchMessages(card, [jinas, 'x'])[0].content.includes('The text is verse'));
+});
 console.log(`\n${n} tests passed`);

@@ -27,7 +27,7 @@ nabra/
    `https://haymohsen.github.io/nabra/`.
 2. Open that URL in Edge once and run a short translation: the first run downloads the chosen engine
    (0.6–5 GB) from the model repository and caches it in the browser.
-3. Package with PWABuilder (Windows), app version `1.0.0` / classic `1.0.0`, and submit in Partner
+3. Package with PWABuilder (Windows), app version `1.1.0` / classic `1.1.0`, and submit in Partner
    Center. The listing text and system requirements are in `STORE-LISTING.md`; the privacy policy URL
    is `https://haymohsen.github.io/nabra/privacy.html`.
 
@@ -44,6 +44,18 @@ nabra/
 * **Style card** — the language pair, register, Arabic variety, form of address, audience note and
   glossary are turned into one system prompt (`core.buildSystemPrompt`) that is sent with every
   paragraph, which keeps long documents consistent.
+* **Literary register** — images are carried across as images, verse (detected by
+  `core.looksLikeVerse`) keeps its line count and hemistich separators, generation runs at a higher
+  temperature, and the per-paragraph "Polish" button (`core.buildPolishMessages`) revises a draft
+  like a literary editor. "Explain idioms" also reports wordplay (jinās, tawriya) with every sense
+  of the repeated words.
+* **Arabic diacritics** — `core.prepareForModel` strips tashkeel before text reaches the engine
+  (about a third fewer characters, far fewer tokens) except where stripping would make distinct
+  words identical (jinās), in which case the vocalized text is kept. The displayed source is never
+  changed.
+* **Memory settings** — "Low-memory mode" loads the engine with a 2048-token context window and
+  smaller chunks (same model, same quality); "Release graphics memory when idle" unloads the engine
+  after 10 minutes and reloads it from the cache on the next request.
 * **Segmentation** — text is split on blank lines; blocks over 1,400 characters are split at sentence
   boundaries and re-joined after translation. Short lines (headings, bullets) are batched ten at a time
   with numbered markers and fall back to one-by-one if the model breaks the numbering.

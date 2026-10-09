@@ -5,7 +5,7 @@ import * as webllm from './vendor/web-llm.js';
 import * as core from './core.js';
 import * as docxlib from './docx.js';
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 
 /* ---------- Interface strings ---------- */
 
@@ -16,6 +16,8 @@ const STRINGS = {
     'engine.loading': 'Loading engine',
     'engine.ready': 'On this PC',
     'engine.error': 'Engine failed',
+    'engine.sleeping': 'Engine released — click to wake',
+    'engine.waking': 'Waking the engine…',
     'settings': 'Settings',
     'from': 'From',
     'to': 'To',
@@ -76,6 +78,12 @@ const STRINGS = {
     'row.redo': 'Redo',
     'row.explain': 'Explain idioms',
     'row.copy': 'Copy',
+    'row.polish': 'Polish',
+    'status.polishing': 'Polishing paragraph {n}…',
+    'settings.lowmem': 'Low-memory mode',
+    'settings.lowmem.hint': 'Uses a shorter context window and smaller chunks: a few hundred MB less graphics memory, same engine, same quality. Takes effect the next time the engine loads.',
+    'settings.idle': 'Release graphics memory after 10 minutes of inactivity',
+    'settings.idle.hint': 'Frees the GPU for other programs; the engine reloads from disk in a few seconds when you translate again.',
     'notes.none': 'No idioms or cultural references found in this paragraph.',
     'notes.working': 'Reviewing idioms…',
     'file.loaded': '{name}: {n} paragraphs',
@@ -112,6 +120,8 @@ const STRINGS = {
     'engine.loading': 'جارٍ تحميل المحرّك',
     'engine.ready': 'على هذا الجهاز',
     'engine.error': 'تعذّر تشغيل المحرّك',
+    'engine.sleeping': 'المحرّك في وضع الراحة — انقر لإيقاظه',
+    'engine.waking': 'جارٍ إيقاظ المحرّك…',
     'settings': 'الإعدادات',
     'from': 'من',
     'to': 'إلى',
@@ -172,6 +182,12 @@ const STRINGS = {
     'row.redo': 'إعادة',
     'row.explain': 'شرح التعابير',
     'row.copy': 'نسخ',
+    'row.polish': 'صقل',
+    'status.polishing': 'جارٍ صقل الفقرة {n}…',
+    'settings.lowmem': 'وضع الذاكرة المنخفضة',
+    'settings.lowmem.hint': 'يستخدم نافذة سياق أقصر ومقاطع أصغر: بضع مئات من الميغابايت أقل من ذاكرة الرسوم، بالمحرّك نفسه والجودة نفسها. يسري عند تحميل المحرّك في المرة التالية.',
+    'settings.idle': 'تحرير ذاكرة الرسوم بعد 10 دقائق من عدم الاستخدام',
+    'settings.idle.hint': 'يحرّر بطاقة الرسوم للبرامج الأخرى؛ يُعاد تحميل المحرّك من القرص خلال ثوانٍ عند الترجمة مجدداً.',
     'notes.none': 'لا توجد تعابير اصطلاحية أو إشارات ثقافية في هذه الفقرة.',
     'notes.working': 'جارٍ مراجعة التعابير…',
     'file.loaded': '{name}: {n} فقرة',
@@ -210,7 +226,10 @@ const state = {
   ui: localStorage.getItem('nabra.ui') || (navigator.language && navigator.language.startsWith('ar') ? 'ar' : 'en'),
   notesLang: localStorage.getItem('nabra.notes') || null,
   modelId: localStorage.getItem('nabra.model') || null,
-  modelState: 'none', // none | loading | ready | error
+  modelState: 'none', // none | loading | ready | sleeping | error
+  lowMemory: localStorage.getItem('nabra.lowmem') === '1',
+  idleRelease: localStorage.getItem('nabra.idle') === '1',
+  idleTimer: null,
   modelProgress: 0,
   engine: null,
   worker: null,
@@ -251,6 +270,8 @@ function applyLanguage() {
   updateWordCount();
   $('#aboutText').textContent = t('about.text', { v: APP_VERSION });
   $('#notesLang').value = state.notesLang || state.ui;
+  $('#lowMem').checked = state.lowMemory;
+  $('#idleRelease').checked = state.idleRelease;
   if (state.mode === 'review') renderRows();
 }
 
@@ -401,6 +422,8 @@ function updatePill() {
   } else if (state.modelState === 'loading') {
     pill.classList.add('busy');
     text.textContent = `${t('engine.loading')} ${Math.round(state.modelProgress * 100)}%`;
+  } else if (state.modelState === 'sleeping') {
+    text.textContent = t('engine.sleeping');
   } else if (state.modelState === 'error') {
     pill.classList.add('error');
     text.textContent = t('engine.error');
@@ -450,17 +473,19 @@ async function loadModel(modelId) {
   updatePill();
   try {
     if (!state.worker) state.worker = new Worker(new URL('./llm-worker.js', import.meta.url), { type: 'module' });
+    const chatOpts = state.lowMemory ? { context_window_size: 2048 } : { context_window_size: 4096 };
     if (!state.engine) {
-      state.engine = await webllm.CreateWebWorkerMLCEngine(state.worker, modelId, { initProgressCallback: onInitProgress });
+      state.engine = await webllm.CreateWebWorkerMLCEngine(state.worker, modelId, { initProgressCallback: onInitProgress }, chatOpts);
     } else {
       state.engine.setInitProgressCallback(onInitProgress);
-      await state.engine.reload(modelId);
+      await state.engine.reload(modelId, chatOpts);
     }
     state.modelId = modelId;
     state.modelState = 'ready';
     localStorage.setItem('nabra.model', modelId);
     setStatus(t('status.idle'));
     updatePill();
+    touchIdle();
     return true;
   } catch (err) {
     console.error(err);
@@ -473,7 +498,46 @@ async function loadModel(modelId) {
   }
 }
 
+function touchIdle() {
+  if (state.idleTimer) clearTimeout(state.idleTimer);
+  state.idleTimer = null;
+  if (!state.idleRelease || state.modelState !== 'ready') return;
+  state.idleTimer = setTimeout(releaseEngine, 10 * 60 * 1000);
+}
+
+async function releaseEngine() {
+  if (state.running || state.modelState !== 'ready' || !state.engine) { touchIdle(); return; }
+  try {
+    await state.engine.unload();
+    state.modelState = 'sleeping';
+    updatePill();
+  } catch (e) { console.error(e); }
+}
+
+/** Make sure the engine can generate: wakes a released engine, opens setup when there is none. */
+async function ensureEngine() {
+  if (state.modelState === 'ready') return true;
+  if (state.modelState === 'sleeping' && state.modelId) {
+    setStatus(t('engine.waking'), { indeterminate: true });
+    try { await loadModel(state.modelId); return true; } catch (e) { return false; }
+  }
+  if (state.modelState === 'loading') { setStatus(t('engine.loading')); return false; }
+  openSetup();
+  setStatus(t('engine.needed'));
+  return false;
+}
+
+function temperatureFor(card) {
+  return card.register === 'literary' ? 0.45 : 0.2;
+}
+
+/** The text actually sent to the engine: Arabic diacritics are dropped (far fewer tokens, same letters). */
+function modelText(text) {
+  return core.detectScript(text) === 'arabic' ? core.prepareForModel(text) : text;
+}
+
 async function generate(messages, { onToken, maxTokens = 1024, temperature = 0.2 } = {}) {
+  touchIdle();
   const stream = await state.engine.chat.completions.create({
     messages,
     stream: true,
@@ -498,6 +562,7 @@ async function generate(messages, { onToken, maxTokens = 1024, temperature = 0.2
       if (onToken) onToken(out);
     }
   }
+  touchIdle();
   return out;
 }
 
@@ -685,13 +750,14 @@ async function loadPdf(file) {
 
 function blockOutput(blockIndex, partial) {
   const block = state.blocks[blockIndex];
+  if (partial && partial.whole) return { text: partial.text, done: false };
   const parts = block.segmentIds.map((id) => {
     if (partial && partial.id === id) return partial.text;
     const tr = state.translations[id];
     return tr === undefined || tr === null ? null : tr;
   });
   const done = parts.every((p) => p !== null);
-  return { text: parts.filter((p) => p !== null).join(block.joiner || ' '), done };
+  return { text: parts.filter((p) => p !== null && p !== '').join(block.joiner || ' '), done };
 }
 
 function renderRows() {
@@ -717,13 +783,15 @@ function renderRows() {
     const tools = document.createElement('div');
     tools.className = 'rowtools';
     tools.dir = document.documentElement.dir || 'ltr';
-    tools.innerHTML = `<button class="btn quiet" type="button" data-act="redo"></button><button class="btn quiet" type="button" data-act="explain"></button><button class="btn quiet" type="button" data-act="copy"></button>`;
+    tools.innerHTML = `<button class="btn quiet" type="button" data-act="redo"></button><button class="btn quiet" type="button" data-act="polish"></button><button class="btn quiet" type="button" data-act="explain"></button><button class="btn quiet" type="button" data-act="copy"></button>`;
     tools.querySelector('[data-act="redo"]').textContent = t('row.redo');
+    tools.querySelector('[data-act="polish"]').textContent = t('row.polish');
     tools.querySelector('[data-act="explain"]').textContent = t('row.explain');
     tools.querySelector('[data-act="copy"]').textContent = t('row.copy');
     tools.addEventListener('click', (e) => {
       const act = e.target.dataset.act;
       if (act === 'redo') redoBlock(i);
+      else if (act === 'polish') polishBlock(i);
       else if (act === 'explain') explainBlock(i);
       else if (act === 'copy') copyText(blockOutput(i).text);
     });
@@ -751,27 +819,25 @@ function paintRow(i, partial, { error = false } = {}) {
 
 async function runTranslation() {
   if (state.running) return;
-  if (state.modelState !== 'ready') {
-    openSetup();
-    setStatus(t('engine.needed'));
-    return;
-  }
   const text = sourceText();
   if (!text.trim()) {
     setStatus(t('source.empty'));
     return;
   }
+  if (!(await ensureEngine())) return;
   saveCard();
   const card = state.card;
   const dense = ['arabic', 'hebrew', 'cjk'].includes(core.detectScript(text)) || ['ar', 'ur', 'fa', 'he', 'zh', 'ja', 'ko', 'hi'].includes(card.target);
-  const { blocks, segments } = core.segmentize(text, { maxChars: dense ? 1000 : 1400 });
+  let maxChars = dense ? 1000 : 1400;
+  if (state.lowMemory) maxChars = Math.round(maxChars * 0.7);
+  const { blocks, segments } = core.segmentize(text, { maxChars });
   state.blocks = blocks;
   state.segments = segments;
   state.translations = new Array(segments.length);
   if (state.doc.kind === 'text' || state.doc.kind === 'pdf') state.doc.text = text;
   setMode('review');
   renderRows();
-  await runSegments(card, segments, { useMemory: true });
+  await runSegments(card, segments, { useMemory: true, temperature: temperatureFor(card) });
 }
 
 async function runSegments(card, segments, { useMemory = true, temperature = 0.2 } = {}) {
@@ -839,7 +905,7 @@ async function runSegments(card, segments, { useMemory = true, temperature = 0.2
 }
 
 async function translateSingle(card, seg, temperature) {
-  const messages = core.buildTranslateMessages(card, seg.text);
+  const messages = core.buildTranslateMessages(card, modelText(seg.text));
   let last = 0;
   const raw = await generate(messages, {
     temperature,
@@ -862,7 +928,7 @@ async function translateSingle(card, seg, temperature) {
 }
 
 async function translateBatch(card, segs, temperature) {
-  const messages = core.buildBatchMessages(card, segs.map((s) => s.text));
+  const messages = core.buildBatchMessages(card, segs.map((s) => modelText(s.text)));
   const chars = segs.reduce((n, s) => n + s.text.length, 0);
   segs.forEach((s) => paintRow(s.blockIndex, { id: s.id, text: '' }));
   const raw = await generate(messages, { temperature, maxTokens: maxTokensFor(chars) + segs.length * 8 });
@@ -886,17 +952,55 @@ async function translateBatch(card, segs, temperature) {
 
 async function redoBlock(i) {
   if (state.running) { setStatus(t('engine.busy')); return; }
-  if (state.modelState !== 'ready') { setStatus(t('engine.needed')); return; }
+  if (!(await ensureEngine())) return;
   const block = state.blocks[i];
   const segs = block.segmentIds.map((id) => state.segments[id]);
   segs.forEach((s) => { state.translations[s.id] = undefined; });
   paintRow(i);
-  await runSegments(state.card, segs, { useMemory: false, temperature: 0.6 });
+  await runSegments(state.card, segs, { useMemory: false, temperature: Math.max(0.6, temperatureFor(state.card)) });
+}
+
+async function polishBlock(i) {
+  if (state.running) { setStatus(t('engine.busy')); return; }
+  if (!(await ensureEngine())) return;
+  const block = state.blocks[i];
+  const { text: draft, done } = blockOutput(i);
+  if (!done || !draft.trim()) return;
+  state.running = true;
+  state.abort = false;
+  setStatus(t('status.polishing', { n: i + 1 }), { indeterminate: true });
+  try {
+    const messages = core.buildPolishMessages(state.card, modelText(block.text), draft);
+    let last = 0;
+    const raw = await generate(messages, {
+      temperature: temperatureFor(state.card),
+      maxTokens: maxTokensFor(block.text.length),
+      onToken: (partial) => {
+        const now = performance.now();
+        if (now - last < 60) return;
+        last = now;
+        paintRow(i, { id: block.segmentIds[0], text: core.stripThinking(partial), whole: true });
+      },
+    });
+    const cleaned = core.cleanTranslation(raw, block.text);
+    if (cleaned && !state.abort) {
+      // The polished text replaces the whole block: keep it in the first segment, blank the others.
+      block.segmentIds.forEach((id, k) => { state.translations[id] = k === 0 ? cleaned : ''; });
+      if (block.segmentIds.length === 1) tm.put(core.tmKey(state.card, state.segments[block.segmentIds[0]].text), cleaned);
+    }
+    paintRow(i);
+    setStatus(t('status.idle'));
+  } catch (err) {
+    setStatus(t('error.generic', { msg: String(err && err.message || err) }));
+    paintRow(i);
+  } finally {
+    state.running = false;
+  }
 }
 
 async function explainBlock(i) {
   if (state.running) { setStatus(t('engine.busy')); return; }
-  if (state.modelState !== 'ready') { setStatus(t('engine.needed')); return; }
+  if (!(await ensureEngine())) return;
   const row = $(`#rows .row[data-block="${i}"]`);
   const out = row.querySelector('.cell.out');
   let notes = out.querySelector('.notes');
@@ -911,7 +1015,7 @@ async function explainBlock(i) {
   state.abort = false;
   try {
     const { text } = blockOutput(i);
-    const messages = core.buildExplainMessages(state.card, state.blocks[i].text, text, state.notesLang || state.ui);
+    const messages = core.buildExplainMessages(state.card, modelText(state.blocks[i].text), text, state.notesLang || state.ui);
     const raw = await generate(messages, { temperature: 0.2, maxTokens: 700 });
     const lines = core.parseNoteLines(raw);
     if (!lines.length) {
@@ -935,9 +1039,9 @@ async function explainBlock(i) {
 
 async function suggestGlossary() {
   if (state.running) { setStatus(t('engine.busy')); return; }
-  if (state.modelState !== 'ready') { openSetup(); return; }
-  const text = sourceText().slice(0, 6000);
+  const text = modelText(sourceText()).slice(0, 6000);
   if (!text.trim()) { setStatus(t('source.empty')); return; }
+  if (!(await ensureEngine())) return;
   state.running = true;
   state.abort = false;
   $('#suggestGlossary').disabled = true;
@@ -1142,7 +1246,10 @@ function wire() {
     localStorage.setItem('nabra.ui', state.ui);
     applyLanguage();
   }));
-  $('#modelPill').addEventListener('click', () => { if (state.modelState !== 'loading') openSetup(); });
+  $('#modelPill').addEventListener('click', () => {
+    if (state.modelState === 'sleeping') { ensureEngine(); return; }
+    if (state.modelState !== 'loading') openSetup();
+  });
   $('#settingsBtn').addEventListener('click', () => $('#settingsDlg').showModal());
   $('#settingsClose').addEventListener('click', () => $('#settingsDlg').close());
   $('#changeModel').addEventListener('click', () => { $('#settingsDlg').close(); openSetup(); });
@@ -1162,6 +1269,15 @@ function wire() {
   $('#notesLang').addEventListener('change', (e) => {
     state.notesLang = e.target.value;
     localStorage.setItem('nabra.notes', state.notesLang);
+  });
+  $('#lowMem').addEventListener('change', (e) => {
+    state.lowMemory = e.target.checked;
+    localStorage.setItem('nabra.lowmem', state.lowMemory ? '1' : '0');
+  });
+  $('#idleRelease').addEventListener('change', (e) => {
+    state.idleRelease = e.target.checked;
+    localStorage.setItem('nabra.idle', state.idleRelease ? '1' : '0');
+    touchIdle();
   });
   $('#setupGo').addEventListener('click', startSetup);
   $('#setupCancel').addEventListener('click', () => $('#setupDlg').close());
@@ -1241,6 +1357,6 @@ async function init() {
 }
 
 /* Debug hook: lets a test harness inspect state or plug in a fake engine. */
-window.nabra = { state, runTranslation, loadFile, setMode, updatePill };
+window.nabra = { state, runTranslation, loadFile, setMode, updatePill, releaseEngine };
 
 init();

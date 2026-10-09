@@ -29,6 +29,8 @@
     --slate-soft: #ECEFF4;
     --privacy: #1F7A5A;
     --privacy-soft: #E3F3EC;
+    --literary: #6A4C93;
+    --literary-soft: #EFE9F7;
     --danger: #B3261E;
     --danger-soft: #FBEAE8;
     --focus: #27467F;
@@ -55,6 +57,8 @@
       --slate-soft: #27303F;
       --privacy: #62CDA2;
       --privacy-soft: #1B3A30;
+      --literary: #B9A1E0;
+      --literary-soft: #2F2544;
       --danger: #F08C84;
       --danger-soft: #3F2320;
       --focus: #8FB0F0;
@@ -170,6 +174,7 @@
   .dial button[data-tone="corporate"], .dial button[data-tone="academic"] { --tone: var(--formal); --tone-soft: var(--formal-soft); }
   .dial button[data-tone="neutral"] { --tone: var(--slate); --tone-soft: var(--slate-soft); }
   .dial button[data-tone="friendly"], .dial button[data-tone="marketing"] { --tone: var(--casual); --tone-soft: var(--casual-soft); }
+  .dial button[data-tone="literary"] { --tone: var(--literary); --tone-soft: var(--literary-soft); }
 
   .rail .actions { display: flex; flex-direction: column; gap: 8px; padding: 12px 18px 14px; border-top: 1px solid var(--line); background: var(--panel); }
 
@@ -421,6 +426,14 @@
         <option value="en">English</option>
         <option value="ar">العربية</option>
       </select>
+    </div>
+    <div class="field">
+      <label class="check"><input type="checkbox" id="lowMem"><span data-i18n="settings.lowmem">Low-memory mode</span></label>
+      <p class="small muted" data-i18n="settings.lowmem.hint">Uses a shorter context window and smaller chunks.</p>
+    </div>
+    <div class="field">
+      <label class="check"><input type="checkbox" id="idleRelease"><span data-i18n="settings.idle">Release graphics memory after 10 minutes of inactivity</span></label>
+      <p class="small muted" data-i18n="settings.idle.hint">Frees the GPU for other programs.</p>
     </div>
     <div class="field">
       <span class="label" data-i18n="settings.memory">Translation memory</span>
