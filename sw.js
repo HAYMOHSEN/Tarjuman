@@ -1,7 +1,7 @@
 /* Nabra service worker: caches the app shell and libraries so the app opens
    offline. The language model itself is cached separately by WebLLM. */
 
-const VERSION = 'nabra-shell-1.2.1';
+const VERSION = 'nabra-shell-1.2.2';
 const SHELL = [
   './',
   './index.html',

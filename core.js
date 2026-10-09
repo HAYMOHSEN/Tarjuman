@@ -131,7 +131,7 @@ export function buildSystemPrompt(card, opts = {}) {
     parts.push(variety.rule);
   }
   if (card.register === 'literary') {
-    parts.push('Idioms and proverbs: use the closest idiom of the target language if one exists, otherwise translate the image itself. Fixed expressions built on a colour, a body part or an everyday object (a "yellow smile", a "white hand", a "black heart") are idioms, not images: render what they mean (a wan, forced smile; a generous deed; a cruel heart), never the colour or the object. Wordplay and paronomasia: keep the play if the target language allows it; if not, keep the dominant meaning and the sound-pattern where possible.');
+    parts.push('Idioms and proverbs: use the closest idiom of the target language if one exists, otherwise translate the image itself. Fixed expressions built on a colour, a body part or an everyday object (a "yellow smile", a "white hand", a "black heart") are idioms, not images: render what they mean (a wan, forced smile; a generous deed; a cruel heart), never the colour or the object. Wordplay and paronomasia: keep the play if the target language allows it; if not, keep the dominant meaning and the sound-pattern where possible. Phrases that quote or echo scripture, hadith, classical poetry or a proverb carry a fixed meaning (wringing one\'s hands in regret, cooking stones for the hungry = feeding false hope): render that meaning, or keep the image only when it still says the same thing to the target reader. Transliterate only real proper names of people, places and brands; never turn ordinary words into an invented name, and never drop a noun that names or judges a person (the traitor, the liar, the beloved).');
     if (opts.verse) parts.push('The text is verse. Output exactly the same number of lines in the same order; never merge or split lines; keep hemistich separators and the punctuation of the source; do not add punctuation the source lacks.');
   } else {
     parts.push('Idioms, metaphors, proverbs and wordplay: render their meaning the way a native writer would say it; never translate them word for word.');
@@ -176,6 +176,7 @@ export function buildExplainMessages(card, sourceText, translatedText, notesLang
     `The user gives a source paragraph and its translation into ${tgt.name}.`,
     'Find the idioms, metaphors, proverbs, allusions, culturally specific references and wordplay in the source paragraph.',
     'Wordplay includes paronomasia (jinās: words that look or sound alike with different meanings), double meanings (tawriya), puns and deliberate repetition of a root.',
+    'For an allusion to scripture, hadith, classical poetry, a proverb or a well-known story, name the source in the note.',
     'For each finding write exactly one line in this form:',
     'original expression — literal meaning — how the translation renders it — one short note on the cultural or rhetorical context.',
     'For wordplay, the "literal meaning" part lists every distinct meaning of the repeated or look-alike words, and the note says what the translation kept and what no translation could keep.',
@@ -218,7 +219,7 @@ export function buildCheckMessages(card, sourceText, translation, notesLang) {
     'MISSING: <element of the source that the translation leaves out>',
     'ADDED: <element of the translation that has no basis in the source>',
     'CHANGED: <source element> → <what the translation turned it into>',
-    'An idiom or fixed expression translated word for word so that it says something different in the target language (a colour, body-part or object idiom taken literally) counts as CHANGED. A verb replaced by a weaker or more generic one that loses the image (sip → swallow, shackled → constricted) counts as CHANGED.',
+    'A common noun or phrase turned into a transliterated proper name counts as ADDED, and the words it replaced count as MISSING. A scriptural, classical or proverbial allusion rendered with the wrong sense counts as CHANGED. An idiom or fixed expression translated word for word so that it says something different in the target language (a colour, body-part or object idiom taken literally) counts as CHANGED. A verb replaced by a weaker or more generic one that loses the image (sip → swallow, shackled → constricted) counts as CHANGED.',
     `Quote the elements in their own language and write any short comment in ${notes}. Ignore word order, synonyms and stylistic choices that keep the meaning.`,
     'If the translation is faithful, reply with the single word OK.',
   ].join('\n');

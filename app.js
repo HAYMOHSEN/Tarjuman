@@ -5,7 +5,7 @@ import * as webllm from './vendor/web-llm.js';
 import * as core from './core.js';
 import * as docxlib from './docx.js';
 
-const APP_VERSION = '1.2.1';
+const APP_VERSION = '1.2.2';
 
 /* ---------- Interface strings ---------- */
 
