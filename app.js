@@ -1,4 +1,4 @@
-/* Nabra — application logic. The model engine (WebLLM) runs in llm-worker.js;
+/* Tarjuman — application logic. The model engine (WebLLM) runs in llm-worker.js;
    text shaping lives in core.js; Word files in docx.js. */
 
 import * as webllm from './vendor/web-llm.js';
@@ -30,7 +30,7 @@ const STRINGS = {
     'audience.ph': "e.g. Email to a bank's compliance team",
     'localize': 'Localize cultural references',
     'glossary': 'Glossary — one term per line',
-    'glossary.ph': 'Nabra = keep\nboard of directors = مجلس الإدارة',
+    'glossary.ph': 'Tarjuman = keep\nboard of directors = مجلس الإدارة',
     'glossary.suggest': 'Suggest terms from the text',
     'translate': 'Translate',
     'rewrite': 'Rewrite the tone',
@@ -145,7 +145,7 @@ const STRINGS = {
     'export.mismatch': 'The document structure changed, so the Word file cannot be rebuilt. Download as text instead.',
     'error.generic': 'Something went wrong: {msg}',
     'error.memory': 'This engine does not fit in this PC\'s graphics memory. Choose a lighter engine.',
-    'about.text': 'Nabra {v}. Runs the open language model on your PC with WebLLM (Apache 2.0). Word and Excel files via JSZip; PDFs via pdf.js; OCR via Tesseract.js.',
+    'about.text': 'Tarjuman {v}. Runs the open language model on your PC with WebLLM (Apache 2.0). Word and Excel files via JSZip; PDFs via pdf.js; OCR via Tesseract.js.',
     'tm.hit': 'from memory',
   },
   ar: {
@@ -166,7 +166,7 @@ const STRINGS = {
     'audience.ph': 'مثال: رسالة إلى قسم الامتثال في بنك',
     'localize': 'توطين الإشارات الثقافية',
     'glossary': 'المسرد — مصطلح في كل سطر',
-    'glossary.ph': 'Nabra = keep\nboard of directors = مجلس الإدارة',
+    'glossary.ph': 'Tarjuman = keep\nboard of directors = مجلس الإدارة',
     'glossary.suggest': 'اقتراح مصطلحات من النص',
     'translate': 'ترجم',
     'rewrite': 'أعد صياغة النبرة',
@@ -281,7 +281,7 @@ const STRINGS = {
     'export.mismatch': 'تغيّرت بنية المستند فتعذّر إعادة بناء ملف وورد. نزّله كنص بدلاً من ذلك.',
     'error.generic': 'حدث خطأ: {msg}',
     'error.memory': 'هذا المحرّك لا يتّسع في ذاكرة الرسوم في هذا الجهاز. اختر محرّكاً أخف.',
-    'about.text': 'نبرة {v}. يشغّل النموذج اللغوي المفتوح على جهازك عبر WebLLM (رخصة Apache 2.0). ملفات وورد وإكسل عبر JSZip، وملفات PDF عبر pdf.js، والتعرّف الضوئي عبر Tesseract.js.',
+    'about.text': 'ترجمان {v}. يشغّل النموذج اللغوي المفتوح على جهازك عبر WebLLM (رخصة Apache 2.0). ملفات وورد وإكسل عبر JSZip، وملفات PDF عبر pdf.js، والتعرّف الضوئي عبر Tesseract.js.',
     'tm.hit': 'من الذاكرة',
   },
 };
@@ -289,13 +289,13 @@ const STRINGS = {
 /* ---------- State ---------- */
 
 const state = {
-  ui: localStorage.getItem('nabra.ui') || (navigator.language && navigator.language.startsWith('ar') ? 'ar' : 'en'),
-  notesLang: localStorage.getItem('nabra.notes') || null,
-  modelId: localStorage.getItem('nabra.model') || null,
+  ui: localStorage.getItem('tarjuman.ui') || (navigator.language && navigator.language.startsWith('ar') ? 'ar' : 'en'),
+  notesLang: localStorage.getItem('tarjuman.notes') || null,
+  modelId: localStorage.getItem('tarjuman.model') || null,
   modelState: 'none', // none | loading | ready | sleeping | error
-  lowMemory: localStorage.getItem('nabra.lowmem') === '1',
-  idleRelease: localStorage.getItem('nabra.idle') === '1',
-  autoCheck: localStorage.getItem('nabra.autocheck') !== '0',
+  lowMemory: localStorage.getItem('tarjuman.lowmem') === '1',
+  idleRelease: localStorage.getItem('tarjuman.idle') === '1',
+  autoCheck: localStorage.getItem('tarjuman.autocheck') !== '0',
   idleTimer: null,
   modelProgress: 0,
   engine: null,
@@ -442,12 +442,12 @@ function readCard() {
 
 function saveCard() {
   state.card = readCard();
-  localStorage.setItem('nabra.card', JSON.stringify({ ...state.card, glossaryText: $('#glossary').value }));
+  localStorage.setItem('tarjuman.card', JSON.stringify({ ...state.card, glossaryText: $('#glossary').value }));
 }
 
 function restoreCard() {
   try {
-    const saved = JSON.parse(localStorage.getItem('nabra.card') || 'null');
+    const saved = JSON.parse(localStorage.getItem('tarjuman.card') || 'null');
     if (!saved) return;
     state.card = saved;
     $('#srcLang').value = saved.source || 'auto';
@@ -565,7 +565,7 @@ async function loadModel(modelId) {
     }
     state.modelId = modelId;
     state.modelState = 'ready';
-    localStorage.setItem('nabra.model', modelId);
+    localStorage.setItem('tarjuman.model', modelId);
     setStatus(t('status.idle'));
     updatePill();
     touchIdle();
@@ -662,7 +662,7 @@ const tm = {
     if (this.db) return Promise.resolve(this.db);
     return new Promise((resolve) => {
       if (!('indexedDB' in window)) return resolve(null);
-      const req = indexedDB.open('nabra', 1);
+      const req = indexedDB.open('tarjuman', 1);
       req.onupgradeneeded = () => req.result.createObjectStore('tm');
       req.onsuccess = () => { this.db = req.result; resolve(this.db); };
       req.onerror = () => resolve(null);
@@ -756,7 +756,7 @@ async function loadFile(file) {
     updateWordCount();
   } catch (err) {
     console.error(err);
-    const msg = err && err.nabraMessage ? err.nabraMessage : t('file.error');
+    const msg = err && err.tarjumanMessage ? err.tarjumanMessage : t('file.error');
     await messageBox(t('file.error'), msg, { okOnly: true });
   }
 }
@@ -831,7 +831,7 @@ async function loadPdf(file) {
     const langs = ocr.ocrLanguages($('#srcLang').value);
     if (!(await askOcr(langs))) {
       const err = new Error('empty pdf');
-      err.nabraMessage = t('file.pdf.empty');
+      err.tarjumanMessage = t('file.pdf.empty');
       throw err;
     }
     const canvases = await ocr.renderPdfPages(pdf, { scale: 2.5, onPage: (n, total) => setStatus(t('status.rendering', { n, total }), { progress: n / total }) });
@@ -839,7 +839,7 @@ async function loadPdf(file) {
     const recognized = texts.join('\n\n').trim();
     if (!recognized) {
       const err = new Error('nothing recognized');
-      err.nabraMessage = t('file.nothing');
+      err.tarjumanMessage = t('file.nothing');
       throw err;
     }
     state.doc = { kind: 'pdf', name: file.name, text: recognized };
@@ -877,7 +877,7 @@ async function loadImage(file) {
   const text = texts.join('\n\n').trim();
   if (!text) {
     const err = new Error('nothing recognized');
-    err.nabraMessage = t('file.nothing');
+    err.tarjumanMessage = t('file.nothing');
     throw err;
   }
   state.doc = { kind: 'image', name: file.name, text };
@@ -911,7 +911,7 @@ async function loadXlsx(file) {
   });
   if (!texts.length) {
     const err = new Error('no text');
-    err.nabraMessage = t('file.nothing');
+    err.tarjumanMessage = t('file.nothing');
     throw err;
   }
   state.doc = { kind: 'xlsx', name: file.name, zip, sharedXml, sheets, map, text: texts.join('\n\n') };
@@ -931,7 +931,7 @@ async function loadCsv(file) {
   });
   if (!texts.length) {
     const err = new Error('no text');
-    err.nabraMessage = t('file.nothing');
+    err.tarjumanMessage = t('file.nothing');
     throw err;
   }
   state.doc = { kind: 'csv', name: file.name, rows, delimiter, map, text: texts.join('\n\n') };
@@ -1403,7 +1403,7 @@ function resultText() {
 }
 
 function baseName() {
-  const n = state.doc.name || 'nabra';
+  const n = state.doc.name || 'tarjuman';
   return n.replace(/\.[^.]+$/, '') + '.' + (state.card ? state.card.target : 'out');
 }
 
@@ -1573,7 +1573,7 @@ async function openSetup() {
         if (state.engine && state.modelState === 'ready') { try { await state.engine.unload(); } catch (err) { /* ignore */ } }
         state.modelState = 'none';
         state.modelId = null;
-        localStorage.removeItem('nabra.model');
+        localStorage.removeItem('tarjuman.model');
         updatePill();
       }
       label.classList.remove('cached');
@@ -1647,7 +1647,7 @@ async function toggleEngineMenu() {
 function wire() {
   document.querySelectorAll('[data-ui]').forEach((b) => b.addEventListener('click', () => {
     state.ui = b.dataset.ui;
-    localStorage.setItem('nabra.ui', state.ui);
+    localStorage.setItem('tarjuman.ui', state.ui);
     applyLanguage();
   }));
   $('#modelPill').addEventListener('click', (e) => {
@@ -1667,7 +1667,7 @@ function wire() {
     if (!(await messageBox(t('confirm.delete.title'), t('confirm.delete.body')))) return;
     try { await webllm.deleteModelAllInfoInCache(state.modelId); } catch (e) { console.error(e); }
     state.modelState = 'none';
-    localStorage.removeItem('nabra.model');
+    localStorage.removeItem('tarjuman.model');
     state.modelId = null;
     updatePill();
     $('#settingsDlg').close();
@@ -1677,19 +1677,19 @@ function wire() {
   });
   $('#notesLang').addEventListener('change', (e) => {
     state.notesLang = e.target.value;
-    localStorage.setItem('nabra.notes', state.notesLang);
+    localStorage.setItem('tarjuman.notes', state.notesLang);
   });
   $('#lowMem').addEventListener('change', (e) => {
     state.lowMemory = e.target.checked;
-    localStorage.setItem('nabra.lowmem', state.lowMemory ? '1' : '0');
+    localStorage.setItem('tarjuman.lowmem', state.lowMemory ? '1' : '0');
   });
   $('#autoCheck').addEventListener('change', (e) => {
     state.autoCheck = e.target.checked;
-    localStorage.setItem('nabra.autocheck', state.autoCheck ? '1' : '0');
+    localStorage.setItem('tarjuman.autocheck', state.autoCheck ? '1' : '0');
   });
   $('#idleRelease').addEventListener('change', (e) => {
     state.idleRelease = e.target.checked;
-    localStorage.setItem('nabra.idle', state.idleRelease ? '1' : '0');
+    localStorage.setItem('tarjuman.idle', state.idleRelease ? '1' : '0');
     touchIdle();
   });
   $('#setupGo').addEventListener('click', startSetup);
@@ -1770,6 +1770,6 @@ async function init() {
 }
 
 /* Debug hook: lets a test harness inspect state or plug in a fake engine. */
-window.nabra = { state, runTranslation, loadFile, setMode, updatePill, releaseEngine, checkBlock };
+window.tarjuman = { state, runTranslation, loadFile, setMode, updatePill, releaseEngine, checkBlock };
 
 init();

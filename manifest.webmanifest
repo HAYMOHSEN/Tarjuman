@@ -1,7 +1,7 @@
 {
-  "id": "/nabra/",
-  "name": "Nabra — Private Translator",
-  "short_name": "Nabra",
+  "id": "/tarjuman/",
+  "name": "Tarjuman — Private Translator",
+  "short_name": "Tarjuman",
   "description": "Offline AI translator that adapts tone and register, explains idioms and cultural references, and translates whole Word, PDF, text and subtitle files. Nothing leaves your PC.",
   "start_url": "./",
   "scope": "./",

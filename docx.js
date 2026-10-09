@@ -1,4 +1,4 @@
-/* Nabra — Word (.docx) helpers. DOM implementations are injected so the same
+/* Tarjuman — Word (.docx) helpers. DOM implementations are injected so the same
    code runs in the browser (DOMParser / XMLSerializer) and in the Node tests. */
 
 export const W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';

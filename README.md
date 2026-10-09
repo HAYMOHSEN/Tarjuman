@@ -1,4 +1,4 @@
-# Nabra (نبرة) — private, offline AI translator
+# Tarjuman (ترجمان) — private, offline AI translator
 
 A PWA for Windows (Microsoft Store via PWABuilder) that translates between 22 languages, adapts the
 tone and register (corporate, academic, neutral, casual, marketing), explains idioms and cultural
@@ -8,14 +8,14 @@ user's PC. The language model runs on the graphics chip through WebGPU (WebLLM);
 ## Folder layout
 
 ```
-nabra/
+tarjuman/
   index.html            interface and styles
   app.js                application logic (engine, files, review, export)
   core.js               prompts, segmentation, parsers — pure functions, Node-testable
   docx.js               Word round-trip helpers
   llm-worker.js         Web Worker that hosts the model
   sw.js                 service worker (offline app shell)
-  manifest.webmanifest  PWA manifest (id "/nabra/")
+  manifest.webmanifest  PWA manifest (id "/tarjuman/")
   privacy.html          privacy policy page for the Store listing
   icons/                app icons (192, 256, 512, maskable)
   xlsx.js               Excel / CSV helpers (pure functions)
@@ -27,13 +27,13 @@ nabra/
 
 ## Deploy (same pipeline as the other apps)
 
-1. Upload the whole `nabra/` folder to the `haymohsen.github.io` repository so the app is served at
-   `https://haymohsen.github.io/nabra/`.
+1. Upload the whole `tarjuman/` folder to the `haymohsen.github.io` repository so the app is served at
+   `https://haymohsen.github.io/tarjuman/`.
 2. Open that URL in Edge once and run a short translation: the first run downloads the chosen engine
    (0.6–5 GB) from the model repository and caches it in the browser.
 3. Package with PWABuilder (Windows), app version `1.4.0` / classic `1.4.0`, and submit in Partner
    Center. The listing text and system requirements are in `STORE-LISTING.md`; the privacy policy URL
-   is `https://haymohsen.github.io/nabra/privacy.html`.
+   is `https://haymohsen.github.io/tarjuman/privacy.html`.
 
 ## Updating
 

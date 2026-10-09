@@ -1,15 +1,15 @@
-# Nabra — Microsoft Store listing material
+# Tarjuman — Microsoft Store listing material
 
 Everything below is ready to paste into Partner Center. Adjust the price and the
 "what's new" text per release.
 
 ## Identity
 
-- **App name:** Nabra — Private Translator
-- **Short name (tile):** Nabra
+- **App name:** Tarjuman — Private Translator
+- **Short name (tile):** Tarjuman
 - **Category:** Productivity
-- **Privacy policy URL:** https://haymohsen.github.io/nabra/privacy.html
-- **Website:** https://haymohsen.github.io/nabra/
+- **Privacy policy URL:** https://haymohsen.github.io/tarjuman/privacy.html
+- **Website:** https://haymohsen.github.io/tarjuman/
 - **Support contact:** haymohsen@gmail.com
 - **Copyright:** © 2026 Hani Muhsen
 - **Suggested price:** USD 19.99 one-time (Store base price tier). Optional: a time-limited
@@ -23,11 +23,11 @@ academic register, idiom explanations, Word and PDF files. Nothing leaves your P
 
 ## Description (English)
 
-Nabra is a translator that runs entirely on your PC. The AI language model lives on your
+Tarjuman is a translator that runs entirely on your PC. The AI language model lives on your
 graphics chip, so confidential contracts, HR documents, client emails and personal messages are
 translated without ever being uploaded to a server.
 
-It does more than translate. Pick the register you need and Nabra writes the translation in that
+It does more than translate. Pick the register you need and Tarjuman writes the translation in that
 voice:
 
 - Formal — corporate: courteous, precise, no slang. For clients, official letters and contracts.
@@ -60,7 +60,7 @@ Whole documents, not just snippets:
   the text first (Arabic, English, French, German, Spanish and Turkish bundled; other languages
   download once), then translates it. Nothing is uploaded.
 - Plain text, Markdown and subtitle (.srt) files: timing and formatting are preserved.
-- A glossary locks names, product terms and abbreviations so they stay consistent; Nabra can suggest
+- A glossary locks names, product terms and abbreviations so they stay consistent; Tarjuman can suggest
   the terms from the text.
 - A translation memory on your PC reuses sentences you have translated before, instantly.
 
@@ -68,15 +68,15 @@ Twenty-two languages: Arabic, English, French, German, Spanish, Italian, Portugu
 Russian, Chinese, Japanese, Korean, Hindi, Urdu, Persian, Hebrew, Dutch, Polish, Swedish, Greek,
 Indonesian and Malay. Interface in English and Arabic.
 
-How it works: on first launch you choose a translation engine — Light, Standard or Pro — and Nabra
+How it works: on first launch you choose a translation engine — Light, Standard or Pro — and Tarjuman
 downloads it once (1 to 5 GB). From then on it works with no internet connection. Larger engines
 give better idioms and dialects and need more graphics memory; see the system requirements.
 
-Nabra contains no accounts, no ads, no analytics and no tracking.
+Tarjuman contains no accounts, no ads, no analytics and no tracking.
 
 ## الوصف (Arabic)
 
-نبرة مترجم يعمل بالكامل على جهازك. نموذج الذكاء الاصطناعي يعمل على بطاقة الرسوم في حاسوبك، لذلك تُترجم
+ترجمان مترجم يعمل بالكامل على جهازك. نموذج الذكاء الاصطناعي يعمل على بطاقة الرسوم في حاسوبك، لذلك تُترجم
 العقود السرية ومستندات الموارد البشرية ورسائل العملاء والرسائل الشخصية دون أن تُرفع إلى أي خادم.
 
 وهو أكثر من مترجم: اختر الأسلوب الذي تحتاجه ليكتب الترجمة بالنبرة المناسبة — رسمي للشركات والخطابات
@@ -143,7 +143,7 @@ translator, offline translation, Arabic translator, formal tone, document transl
 | Touch | Not required | — |
 | Internet | Required once, to download the chosen engine (0.6–5 GB). Not needed afterwards. | Broadband for the first download |
 
-**Notes field:** "Nabra runs an AI language model on the graphics chip through WebGPU. The engine is
+**Notes field:** "Tarjuman runs an AI language model on the graphics chip through WebGPU. The engine is
 downloaded once on first launch (Mini 0.6 GB, Light 1.1 GB, Standard 2.4 GB, Pro 5 GB) and the app
 then works fully offline. A low-memory mode in Settings trims graphics-memory use for 8 GB machines. Translation speed depends on the graphics adapter: a few seconds per
 paragraph on a modern integrated GPU, faster on a dedicated GPU. Scanned PDFs and images are read with

@@ -1,6 +1,6 @@
 # Arabic literary benchmark — reference translations
 
-Open `arabic-literary.txt` in Nabra (Open file…), set Arabic → English, register **Literary**, and
+Open `arabic-literary.txt` in Tarjuman (Open file…), set Arabic → English, register **Literary**, and
 translate. Grade each paragraph against the reference below: fidelity first (nothing missing,
 nothing added, mood and person kept), then the device. Expect the Standard engine to handle the
 plain-meaning paragraphs and to need the fidelity repair on the dense ones; the Pro engine should

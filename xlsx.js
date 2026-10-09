@@ -1,4 +1,4 @@
-/* Nabra — Excel (.xlsx) helpers: translate the text of cells while numbers, dates and formulas
+/* Tarjuman — Excel (.xlsx) helpers: translate the text of cells while numbers, dates and formulas
    stay untouched. DOM implementations are injected so the code runs in the browser and in Node. */
 
 export const SS_NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';

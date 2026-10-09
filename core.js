@@ -1,4 +1,4 @@
-/* Nabra — core logic. No DOM, no browser APIs: this module is shared by the
+/* Tarjuman — core logic. No DOM, no browser APIs: this module is shared by the
    app and by the Node test suite. Everything that talks to the model engine
    lives in app.js; everything that only shapes text lives here. */
 

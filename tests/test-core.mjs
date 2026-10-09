@@ -59,11 +59,11 @@ await t('cleanTranslation strips labels, quotes, thinking', () => {
 });
 
 await t('prompts contain the key instructions', () => {
-  const card = { source: 'en', target: 'ar', register: 'corporate', variety: 'levantine', address: 'formal', localize: true, audience: 'Email to a bank', glossary: [{ term: 'Nabra', rendering: '' }, { term: 'board', rendering: 'مجلس الإدارة' }] };
+  const card = { source: 'en', target: 'ar', register: 'corporate', variety: 'levantine', address: 'formal', localize: true, audience: 'Email to a bank', glossary: [{ term: 'Tarjuman', rendering: '' }, { term: 'board', rendering: 'مجلس الإدارة' }] };
   const p = core.buildSystemPrompt(card);
   assert.ok(p.includes('from English into Arabic'));
   assert.ok(p.includes('Levantine'));
-  assert.ok(p.includes('"Nabra" → keep'));
+  assert.ok(p.includes('"Tarjuman" → keep'));
   assert.ok(p.includes('"board" → "مجلس الإدارة"'));
   assert.ok(p.includes('Email to a bank'));
   const same = core.buildSystemPrompt({ source: 'en', target: 'en', register: 'friendly', glossary: [] });

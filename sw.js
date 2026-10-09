@@ -1,7 +1,7 @@
-/* Nabra service worker: caches the app shell and libraries so the app opens
+/* Tarjuman service worker: caches the app shell and libraries so the app opens
    offline. The language model itself is cached separately by WebLLM. */
 
-const VERSION = 'nabra-shell-1.4.0';
+const VERSION = 'tarjuman-shell-1.4.0';
 const SHELL = [
   './',
   './index.html',
@@ -22,7 +22,7 @@ const SHELL = [
   './vendor/pdf.worker.min.mjs',
 ];
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
-const FONT_CACHE = 'nabra-fonts';
+const FONT_CACHE = 'tarjuman-fonts';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -34,7 +34,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(
       // Only this app's own shell caches; WebLLM keeps the model in caches named "webllm/…".
-      keys.filter((k) => k.startsWith('nabra-shell-') && k !== VERSION).map((k) => caches.delete(k)),
+      keys.filter((k) => k.startsWith('tarjuman-shell-') && k !== VERSION).map((k) => caches.delete(k)),
     )).then(() => self.clients.claim()),
   );
 });

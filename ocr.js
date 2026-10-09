@@ -1,4 +1,4 @@
-/* Nabra — on-device OCR with Tesseract (WebAssembly). Everything runs in the browser; the
+/* Tarjuman — on-device OCR with Tesseract (WebAssembly). Everything runs in the browser; the
    recognizer and the language data are served from this app's own folder. */
 
 const BUNDLED = ['ara', 'eng', 'fra', 'deu', 'spa', 'tur'];
