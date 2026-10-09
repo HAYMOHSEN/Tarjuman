@@ -4,9 +4,9 @@ import * as docx from '../docx.js';
 let DOMParser, XMLSerializer;
 try { ({ DOMParser, XMLSerializer } = await import('@xmldom/xmldom')); } catch { console.log('(@xmldom/xmldom not installed — skipping docx tests; run: npm install @xmldom/xmldom)'); }
 
-let n = 0; const t = (name, fn) => { fn(); n++; console.log('ok', name); };
+let n = 0; const t = async (name, fn) => { await fn(); n++; console.log('ok', name); };
 
-t('segmentize + assemble round trip', () => {
+await t('segmentize + assemble round trip', () => {
   const text = 'First paragraph.\n\nSecond paragraph line one\nline two.\n\n\n\nThird.';
   const { blocks, segments } = core.segmentize(text);
   assert.equal(blocks.length, 3);
@@ -15,7 +15,7 @@ t('segmentize + assemble round trip', () => {
   assert.equal(out, 'FIRST PARAGRAPH.\n\nSECOND PARAGRAPH LINE ONE\nLINE TWO.\n\nTHIRD.');
 });
 
-t('long block splits by sentences and reassembles', () => {
+await t('long block splits by sentences and reassembles', () => {
   const sentence = 'This is a sentence that is fairly long for testing purposes. ';
   const text = sentence.repeat(60).trim();
   const { blocks, segments } = core.segmentize(text, { maxChars: 500 });
@@ -26,39 +26,39 @@ t('long block splits by sentences and reassembles', () => {
   assert.equal(out, text);
 });
 
-t('long block with lines splits by lines', () => {
+await t('long block with lines splits by lines', () => {
   const text = Array.from({ length: 40 }, (_, i) => `Item ${i} is here`).join('\n');
   const { blocks, segments } = core.segmentize(text, { maxChars: 200 });
   assert.ok(segments.length > 1);
   assert.equal(core.assemble(blocks, segments, segments.map(s => s.text)), text);
 });
 
-t('arabic text segmentation', () => {
+await t('arabic text segmentation', () => {
   const text = 'هذه فقرة أولى؟ نعم. '.repeat(100).trim();
   const { segments } = core.segmentize(text, { maxChars: 300 });
   assert.ok(segments.length > 3);
 });
 
-t('planRequests batches short lines', () => {
+await t('planRequests batches short lines', () => {
   const segs = ['Title', 'Short one.', 'Another short.', 'x'.repeat(500), 'Last short'].map((text, id) => ({ id, text, blockIndex: id, partIndex: 0 }));
   const reqs = core.planRequests(segs);
   assert.deepEqual(reqs.map(r => r.kind), ['batch', 'single', 'single']);
   assert.equal(reqs[0].segments.length, 3);
 });
 
-t('parseNumbered handles arabic digits and wrapped lines', () => {
+await t('parseNumbered handles arabic digits and wrapped lines', () => {
   const out = '<think>hmm</think>\n١) الأول\n2) الثاني\nتابع\n3) الثالث';
   assert.deepEqual(core.parseNumbered(out, 3), ['الأول', 'الثاني تابع', 'الثالث']);
   assert.equal(core.parseNumbered('1) only', 2), null);
 });
 
-t('cleanTranslation strips labels, quotes, thinking', () => {
+await t('cleanTranslation strips labels, quotes, thinking', () => {
   assert.equal(core.cleanTranslation('<think>x</think>Translation: "Hello"', 'مرحبا'), 'Hello');
   assert.equal(core.cleanTranslation('"Hi"', '"مرحبا"'), '"Hi"');
   assert.equal(core.cleanTranslation('الترجمة: أهلاً', 'Hi'), 'أهلاً');
 });
 
-t('prompts contain the key instructions', () => {
+await t('prompts contain the key instructions', () => {
   const card = { source: 'en', target: 'ar', register: 'corporate', variety: 'levantine', address: 'formal', localize: true, audience: 'Email to a bank', glossary: [{ term: 'Nabra', rendering: '' }, { term: 'board', rendering: 'مجلس الإدارة' }] };
   const p = core.buildSystemPrompt(card);
   assert.ok(p.includes('from English into Arabic'));
@@ -74,13 +74,13 @@ t('prompts contain the key instructions', () => {
   assert.ok(batch[1].content === '1) a\n2) b');
 });
 
-t('notes and glossary parsing', () => {
+await t('notes and glossary parsing', () => {
   assert.deepEqual(core.parseNoteLines('NONE'), []);
   assert.deepEqual(core.parseNoteLines('- break a leg — good luck — حظاً موفقاً — theatre idiom\n• second'), ['break a leg — good luck — حظاً موفقاً — theatre idiom', 'second']);
   assert.deepEqual(core.parseGlossaryLines('GJU — KEEP\nboard of directors — مجلس الإدارة\nnonsense line'), [{ term: 'GJU', rendering: '' }, { term: 'board of directors', rendering: 'مجلس الإدارة' }]);
 });
 
-t('srt round trip', () => {
+await t('srt round trip', () => {
   const srt = '1\n00:00:01,000 --> 00:00:02,000\nHello\nworld\n\n2\n00:00:03,000 --> 00:00:04,000\nBye\n';
   const cues = core.parseSrt(srt);
   assert.equal(cues.length, 2);
@@ -88,7 +88,7 @@ t('srt round trip', () => {
   assert.equal(core.serializeSrt(cues), srt);
 });
 
-t('pdf lines to paragraphs', () => {
+await t('pdf lines to paragraphs', () => {
   const lines = [
     { text: 'The quick brown fox jumps over the', y: 700, height: 12 },
     { text: 'lazy dog. It was tired.', y: 686, height: 12 },
@@ -100,7 +100,7 @@ t('pdf lines to paragraphs', () => {
   assert.deepEqual(paras, ['The quick brown fox jumps over the lazy dog. It was tired.', 'A new paragraph starts here after a gap. Hyphenated word.']);
 });
 
-t('direction, words, tm key', () => {
+await t('direction, words, tm key', () => {
   assert.equal(core.textDirection('مرحبا بكم في التطبيق'), 'rtl');
   assert.equal(core.textDirection('Hello there'), 'ltr');
   assert.equal(core.countWords('  a b   c '), 3);
@@ -111,7 +111,7 @@ t('direction, words, tm key', () => {
   assert.equal(core.recommendTier(16), 'standard');
 });
 
-if (DOMParser) t('docx round trip keeps styles, replaces text, sets rtl', () => {
+if (DOMParser) await t('docx round trip keeps styles, replaces text, sets rtl', () => {
   const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="${docx.W_NS}"><w:body>
 <w:p><w:pPr><w:pStyle w:val="Heading1"/><w:jc w:val="both"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>Hello </w:t></w:r><w:r><w:t>world</w:t></w:r><w:r><w:br/><w:t>line2</w:t></w:r></w:p>
@@ -140,7 +140,7 @@ if (DOMParser) t('docx round trip keeps styles, replaces text, sets rtl', () => 
   assert.ok(!out2.includes('<w:bidi/>') && !out2.includes('<w:rtl/>'));
 });
 
-if (DOMParser) t('new docx xml is well formed', () => {
+if (DOMParser) await t('new docx xml is well formed', () => {
   const xml = docx.buildDocumentXml(['# Title & more', 'Body <b>\nsecond line'], { rtl: true });
   const doc = new DOMParser().parseFromString(xml, 'application/xml');
   assert.equal(doc.getElementsByTagNameNS(docx.W_NS, 'p').length, 2);
@@ -150,7 +150,7 @@ if (DOMParser) t('new docx xml is well formed', () => {
 });
 
 
-t('literary register, verse detection, tashkeel', () => {
+await t('literary register, verse detection, tashkeel', () => {
   const s = 'يَتَشَظَّى الوَقْتُ عَلَى رَصِيفِ الانْتِظَارِ';
   assert.equal(core.stripTashkeel(s), 'يتشظى الوقت على رصيف الانتظار');
   assert.ok(core.looksLikeVerse('أَلَمٌ أَلَمَّ أَلَمْ أُلِمَّ بِدَائِهِ ... إِنْ آنَ آنٌ آنَ آنُ أَوَانِهِ'));
@@ -171,11 +171,21 @@ t('literary register, verse detection, tashkeel', () => {
   const jinas = 'أَلَمٌ أَلَمَّ أَلَمْ أُلِمَّ بِدَائِهِ ... إِنْ آنَ آنٌ آنَ آنُ أَوَانِهِ';
   assert.equal(core.prepareForModel(jinas), jinas, 'vocalization kept when words would collapse');
   assert.equal(core.prepareForModel(s), 'يتشظى الوقت على رصيف الانتظار');
+  assert.equal(core.prepareForModel(s, { literary: true }), s, 'literary keeps vocalization');
+  const verse = 'أَقِلْ أَنِلْ أَقْطِعْ احْمِلْ عَلِّ سَلْ أَعِدْ ... زِدْ هَشَّ بَشَّ هَبْ اغْفِرْ تَفَضَّلْ أَجْمِلِ';
+  assert.equal(core.prepareForModel(verse), verse, 'verse keeps vocalization in any register');
+  assert.ok(core.buildSystemPrompt(card).includes('imperative stays an imperative'));
+  const arMsgs = core.buildTranslateMessages(card, 'لَا عَيْبَ فِيهِ إِلَّا أَنَّهُ');
+  assert.ok(arMsgs[0].content.includes('Praise disguised as blame'), 'devices reference for Arabic source');
+  const frMsgs = core.buildTranslateMessages({ source: 'fr', target: 'en', register: 'literary' }, 'Bonjour tout le monde');
+  assert.ok(!frMsgs[0].content.includes('Praise disguised as blame'), 'no Arabic reference for French source');
+  assert.ok(!core.buildTranslateMessages({ source: 'ar', target: 'en', register: 'corporate' }, 'نص').at(0).content.includes('Praise disguised as blame'), 'reference is literary-only');
+  assert.ok(core.buildExplainMessages(card, 'x', 'y', 'ar')[0].content.includes('ما لا يستحيل بالانعكاس'));
   assert.ok(core.buildBatchMessages(card, [jinas, 'x'])[0].content.includes('The text is verse'));
 });
 console.log(`\n${n} tests passed`);
 
-t('fidelity check parsing and repair prompt', () => {
+await t('fidelity check parsing and repair prompt', () => {
   assert.ok(!core.hasIssues(core.parseCheck('OK')));
   assert.ok(!core.hasIssues(core.parseCheck('<think>..</think>\nok.')));
   const c = core.parseCheck('- MISSING: كلما حاولت\nADDED: melody\n**Changed**: واهٍ → futile\nsome free remark');
@@ -191,4 +201,39 @@ t('fidelity check parsing and repair prompt', () => {
   assert.ok(chk.includes('MISSING:') && chk.includes('Arabic'));
   assert.ok(core.buildSystemPrompt(card).includes('Fidelity comes first'));
 });
-console.log(`${n} tests passed (incl. fidelity)`);
+
+if (DOMParser) await t('xlsx shared strings, inline strings, rtl view', async () => {
+  const x = await import('../xlsx.js');
+  const shared = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sst xmlns="${x.SS_NS}" count="4" uniqueCount="4"><si><t>Product</t></si><si><r><rPr><b/></rPr><t>Unit </t></r><r><t>price</t></r></si><si><t>1250</t></si><si><t xml:space="preserve">Thank you </t><rPh sb="0" eb="1"><t>x</t></rPh></si></sst>`;
+  const { doc, items } = x.xlsxSharedStrings(shared, { DOMParser });
+  assert.deepEqual(items.map((i) => i.text), ['Product', 'Unit price', '1250', 'Thank you ']);
+  assert.deepEqual(items.map((i) => i.translatable), [true, true, false, true]);
+  x.xlsxApplyStrings(doc, items, ['المنتج', 'سعر الوحدة', undefined, 'شكراً لك']);
+  const out = x.xlsxSerialize(doc, { XMLSerializer });
+  assert.ok(out.includes('<si><t xml:space="preserve">المنتج</t></si>'));
+  assert.ok(out.includes('<si><t xml:space="preserve">سعر الوحدة</t></si>'));
+  assert.ok(out.includes('<si><t>1250</t></si>'), 'untranslated string untouched');
+  assert.ok(!out.includes('<rPh'));
+  const sheet = `<worksheet xmlns="${x.SS_NS}"><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>Hello</t></is></c><c r="B1"><v>5</v></c><c r="C1"><f>SUM(B1:B1)</f><v>5</v></c></row></sheetData></worksheet>`;
+  const s2 = x.xlsxInlineStrings(sheet, { DOMParser });
+  assert.deepEqual(s2.items.map((i) => i.text), ['Hello']);
+  x.xlsxApplyStrings(s2.doc, s2.items, ['مرحبا']);
+  x.xlsxSetDirection(s2.doc, true);
+  const out2 = x.xlsxSerialize(s2.doc, { XMLSerializer });
+  assert.ok(out2.includes('rightToLeft="1"') && out2.includes('>مرحبا<') && out2.includes('<f>SUM(B1:B1)</f>'));
+});
+
+await t('csv parse, translatable cells, serialize', async () => {
+  const x = await import('../xlsx.js');
+  const csv = 'Name;Qty;Note\r\n"Smith, John";3;"He said ""hi""\nthen left"\r\nTotal;3;\r\n';
+  const { rows, delimiter } = x.parseCsv(csv);
+  assert.equal(delimiter, ';');
+  assert.deepEqual(rows[1], ['Smith, John', '3', 'He said "hi"\nthen left']);
+  const cells = x.csvTranslatableCells(rows);
+  assert.deepEqual(cells.map((c) => c.text), ['Name', 'Qty', 'Note', 'Smith, John', 'He said "hi"\nthen left', 'Total']);
+  const back = x.serializeCsv(rows, ';');
+  assert.equal(x.parseCsv(back, ';').rows.length, 3);
+  assert.deepEqual(x.parseCsv(back, ';').rows[1], rows[1]);
+});
+console.log(`\n${n} tests passed`);

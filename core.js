@@ -57,7 +57,7 @@ export const REGISTERS = {
   literary: {
     en: 'Literary — poetry and prose', ar: 'أدبي — شعر ونثر فني',
     hint_en: 'Verse, stories, lyrical prose', hint_ar: 'الشعر والقصص والنثر الشعري',
-    rule: 'Literary register, as a published literary translator would write: every image, metaphor and symbol is carried across as an image, never explained, simplified or replaced by its plain meaning; keep the order of the images and the rhythm of the sentences; prefer one precise, evocative word to a safe paraphrase; keep the elevated or archaic diction where the source has it; keep ambiguity ambiguous; no clichés, no added connectors, no softening of grief, violence or desire. Fidelity comes first: never add an image, sound, colour, object or feeling the source lacks, and never drop the speaker, the tense, a verb or a clause — a beautiful line that says something else is a failed translation.',
+    rule: 'Literary register, as a published literary translator would write: every image, metaphor and symbol is carried across as an image, never explained, simplified or replaced by its plain meaning; keep the order of the images and the rhythm of the sentences; prefer one precise, evocative word to a safe paraphrase; keep the elevated or archaic diction where the source has it; keep ambiguity ambiguous; no clichés, no added connectors, no softening of grief, violence or desire. Keep the grammatical mood and person of every verb: an imperative stays an imperative addressed to "you", a first person stays first person, a question stays a question, a wish stays a wish. Fidelity comes first: never add an image, sound, colour, object or feeling the source lacks, and never drop the speaker, the tense, a verb or a clause — a beautiful line that says something else is a failed translation.',
   },
 };
 
@@ -109,6 +109,25 @@ function glossaryLines(glossary) {
   return 'Glossary — apply these renderings exactly and consistently:\n' + lines.join('\n');
 }
 
+/** Reference the engine sees in the literary register when the source is Arabic. */
+export const ARABIC_DEVICES = [
+  'Arabic literary devices and how to carry each one across:',
+  '- Root-play and jinās (وجدتُ وجدي بوجدها يجدّ جدّاً كلما جدّ الجفاء; غادَرَ الغادِرُ غَديرَ): each occurrence has its own meaning — to find (وجد), passion (وجد), to grow earnest (جدّ) — translate every one by its own sense; echo the sound with repetition or alliteration only when it costs no meaning.',
+  '- Rhymed prose (sajʿ) and parallel clauses (فأبدى جلداً وأخفى كمداً): keep the clauses parallel, clause for clause, and keep every antithesis; add rhyme or rhythm only when it comes naturally.',
+  '- Palindromes and letter-games (مودته تدوم لكل هول / وهل كل مودته تدوم): the form cannot cross languages; translate the meaning plainly and keep the two halves.',
+  '- Sufi and theological terms (العارف، المعروف، الغيب، المشهود، الحجاب): fixed technical senses — the knower, the Known, the Unseen, the Witnessed, the veil — never everyday words; capitalize the divine referents.',
+  '- Scriptural and classical echoes (أليس الصبح بقريب; أنلزمكموها): render them with the gravity of scripture; a rhetorical question stays a question.',
+  '- Compressed verb forms (أنلزمكموها = shall we force it upon you?; فأسقوكموها = so they gave it to you to drink): one word may hold interrogative, subject, verb and two objects — unpack every element and drop none.',
+  '- One-letter imperatives of weak roots (عِ = heed, فِ = fulfil, قِ = guard, رِ = kindle, لِ = be near): full verbs, never typos; translate them as commands.',
+  '- The accusative of command and warning (الصبرَ أيها الثاكل = have patience, bereaved one!): supply the implied verb.',
+  '- Rare and desert vocabulary (الصرصر = icy gale, الحرور = scorching wind, الفودان = the temples, المحل = drought, الثاكل = one bereaved of a child, المنّ = reproachful reminder of a favour): exact words, never a vague substitute.',
+  '- Praise disguised as blame and blame disguised as praise (لا عيب فيه إلا أنه…; لا ميزة له سوى أن سيفه سبق عدله): keep the "no fault except…" frame word for word so the irony survives; never resolve it into plain praise or blame.',
+  '- Idioms of the body and the many senses of عين: أقرّ عينه = gladdened him, أقضّ مضجعه = robbed him of sleep, عين الماء = a spring, عين الغبن = injustice itself; choose the sense, not the organ.',
+  '- Desert idioms with a literal layer (لم يُبقِ المحلُ له ناقةً ولا جملاً: the drought left him no camels, and "neither she-camel nor camel" also means "no stake left"): when the literal reading is true in context keep the image so both layers survive.',
+].join('\n');
+
+export const DEVICE_NAMES = 'جناس (paronomasia), اشتقاق (root-play), تورية (double meaning), سجع (rhymed prose), طباق/مقابلة (antithesis), اقتباس (scriptural quotation), تأكيد المدح بما يشبه الذم (praise disguised as blame), تأكيد الذم بما يشبه المدح (blame disguised as praise), إغراء (accusative of command), ما لا يستحيل بالانعكاس (palindrome), كناية (metonymy), استعارة (metaphor), مصطلح صوفي (Sufi term)';
+
 export function buildSystemPrompt(card, opts = {}) {
   const src = languageByCode(card.source);
   const tgt = languageByCode(card.target);
@@ -133,6 +152,7 @@ export function buildSystemPrompt(card, opts = {}) {
   if (card.register === 'literary') {
     parts.push('Idioms and proverbs: use the closest idiom of the target language if one exists, otherwise translate the image itself. Fixed expressions built on a colour, a body part or an everyday object (a "yellow smile", a "white hand", a "black heart") are idioms, not images: render what they mean (a wan, forced smile; a generous deed; a cruel heart), never the colour or the object. Wordplay and paronomasia: keep the play if the target language allows it; if not, keep the dominant meaning and the sound-pattern where possible. Phrases that quote or echo scripture, hadith, classical poetry or a proverb carry a fixed meaning (wringing one\'s hands in regret, cooking stones for the hungry = feeding false hope): render that meaning, or keep the image only when it still says the same thing to the target reader. Transliterate only real proper names of people, places and brands; never turn ordinary words into an invented name, and never drop a noun that names or judges a person (the traitor, the liar, the beloved).');
     if (opts.verse) parts.push('The text is verse. Output exactly the same number of lines in the same order; never merge or split lines; keep hemistich separators and the punctuation of the source; do not add punctuation the source lacks.');
+    if (opts.arabic || card.source === 'ar') parts.push(ARABIC_DEVICES);
   } else {
     parts.push('Idioms, metaphors, proverbs and wordplay: render their meaning the way a native writer would say it; never translate them word for word.');
   }
@@ -150,7 +170,7 @@ export function buildSystemPrompt(card, opts = {}) {
 
 export function buildTranslateMessages(card, text) {
   return [
-    { role: 'system', content: buildSystemPrompt(card, { verse: looksLikeVerse(text) }) },
+    { role: 'system', content: buildSystemPrompt(card, { verse: looksLikeVerse(text), arabic: detectScript(text) === 'arabic' }) },
     { role: 'user', content: text },
   ];
 }
@@ -160,7 +180,7 @@ export function buildBatchMessages(card, segments) {
   const relation = card.register === 'literary'
     ? 'The segments are consecutive lines of one text: let the sense run across them, but'
     : 'Treat each segment independently,';
-  const system = buildSystemPrompt(card, { verse: card.register === 'literary' && segments.some(looksLikeVerse) })
+  const system = buildSystemPrompt(card, { verse: card.register === 'literary' && segments.some(looksLikeVerse), arabic: segments.some((s) => detectScript(s) === 'arabic') })
     + `\nThe user sends ${segments.length} numbered segments. ${relation} output the same numbers in the same order, exactly one segment per line, in the form "1) text". Never merge, drop or renumber segments.`;
   return [
     { role: 'system', content: system },
@@ -177,6 +197,7 @@ export function buildExplainMessages(card, sourceText, translatedText, notesLang
     'Find the idioms, metaphors, proverbs, allusions, culturally specific references and wordplay in the source paragraph.',
     'Wordplay includes paronomasia (jinās: words that look or sound alike with different meanings), double meanings (tawriya), puns and deliberate repetition of a root.',
     'For an allusion to scripture, hadith, classical poetry, a proverb or a well-known story, name the source in the note.',
+    `Name each device by its Arabic term with a gloss where one applies: ${DEVICE_NAMES}.`,
     'For each finding write exactly one line in this form:',
     'original expression — literal meaning — how the translation renders it — one short note on the cultural or rhetorical context.',
     'For wordplay, the "literal meaning" part lists every distinct meaning of the repeated or look-alike words, and the note says what the translation kept and what no translation could keep.',
@@ -198,6 +219,7 @@ export function buildPolishMessages(card, sourceText, draft) {
     'The user gives the source text and the draft.',
     'Revise the draft so that it reads as if written by a native author in the target language while matching the source image for image and sentence for sentence.',
     `Register: ${register.rule}`,
+    ...(card.register === 'literary' && detectScript(sourceText) === 'arabic' ? [ARABIC_DEVICES] : []),
     'Fix every place where the draft is literal, clumsy, over-explained, or loses an image, a nuance, a rhythm or an ambiguity of the source. Keep what is already good.',
     'Keep every fact, name, number and the line and paragraph structure unchanged.',
     `Output only the revised ${tgt.name} text, nothing else.`,
@@ -219,7 +241,7 @@ export function buildCheckMessages(card, sourceText, translation, notesLang) {
     'MISSING: <element of the source that the translation leaves out>',
     'ADDED: <element of the translation that has no basis in the source>',
     'CHANGED: <source element> → <what the translation turned it into>',
-    'A common noun or phrase turned into a transliterated proper name counts as ADDED, and the words it replaced count as MISSING. A scriptural, classical or proverbial allusion rendered with the wrong sense counts as CHANGED. An idiom or fixed expression translated word for word so that it says something different in the target language (a colour, body-part or object idiom taken literally) counts as CHANGED. A verb replaced by a weaker or more generic one that loses the image (sip → swallow, shackled → constricted) counts as CHANGED.',
+    'An ironic "no fault except…" frame resolved into plain praise or blame counts as CHANGED. A one-letter imperative (عِ، فِ، قِ، رِ) treated as a typo and dropped counts as MISSING. A compressed verb form (أنلزمكموها) unpacked without all its pronouns counts as MISSING. A Sufi or theological term rendered as an everyday word counts as CHANGED. A verb whose mood or person changed (an imperative turned into a statement, "you" turned into "I", a question turned into a claim) counts as CHANGED. A common noun or phrase turned into a transliterated proper name counts as ADDED, and the words it replaced count as MISSING. A scriptural, classical or proverbial allusion rendered with the wrong sense counts as CHANGED. An idiom or fixed expression translated word for word so that it says something different in the target language (a colour, body-part or object idiom taken literally) counts as CHANGED. A verb replaced by a weaker or more generic one that loses the image (sip → swallow, shackled → constricted) counts as CHANGED.',
     `Quote the elements in their own language and write any short comment in ${notes}. Ignore word order, synonyms and stylistic choices that keep the meaning.`,
     'If the translation is faithful, reply with the single word OK.',
   ].join('\n');
@@ -259,7 +281,7 @@ export function buildRepairMessages(card, sourceText, draft, check) {
   check.added.forEach((x) => lines.push(`ADDED by the draft without basis in the source: ${x}`));
   check.changed.forEach((x) => lines.push(`CHANGED meaning: ${x}`));
   check.other.forEach((x) => lines.push(`NOTE: ${x}`));
-  const system = buildSystemPrompt(card, { verse: looksLikeVerse(sourceText) })
+  const system = buildSystemPrompt(card, { verse: looksLikeVerse(sourceText), arabic: detectScript(sourceText) === 'arabic' })
     + '\nA reviewer compared a draft translation with the source and found these problems:\n' + lines.join('\n')
     + `\nProduce a corrected ${tgt.name} translation that fixes every listed problem — restore what is missing, remove what was added, correct what was changed — and keeps everything else of the draft that was right. Output only the corrected translation.`;
   const user = `Source:\n${sourceText}\n\nDraft:\n${draft}`;
@@ -575,7 +597,10 @@ export function stripTashkeel(text) {
 /** Text to send to the engine. Diacritics are dropped to save tokens — unless dropping them
  *  makes words collapse into each other (jinās: أَلَمٌ أَلَمَّ أَلَمْ أُلِمَّ), where the vocalization
  *  is the only thing that tells the meanings apart, so the original is kept. */
-export function prepareForModel(text) {
+export function prepareForModel(text, options = {}) {
+  // In the literary register and in verse the vocalization is information (mood, case, metre):
+  // keep it and only drop tatweel. Elsewhere strip it unless words would collapse into each other.
+  if (options.literary || looksLikeVerse(text)) return (text || '').replace(/\u0640/g, '');
   const stripped = stripTashkeel(text);
   if (stripped === text) return text;
   const words = (s) => s.split(/[\s،,.;:؛!?؟()«»"'…]+/).filter((w) => w.length > 1);

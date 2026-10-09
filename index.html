@@ -131,6 +131,16 @@
   .pill.error .dot { background: var(--danger); }
   @keyframes pulse { 50% { opacity: .35; } }
   @media (prefers-reduced-motion: reduce) { .pill.busy .dot { animation: none; } }
+  .top { position: relative; }
+  .menu { position: absolute; top: calc(100% - 4px); inset-inline-end: 150px; z-index: 5; min-width: 240px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 8px; box-shadow: 0 12px 32px rgba(8, 12, 24, .18); padding: 6px; display: flex; flex-direction: column; gap: 2px; }
+  .menu-item { text-align: start; border: 0; background: transparent; padding: 8px 10px; border-radius: var(--radius); font-size: 14px; }
+  .menu-item:hover { background: var(--slate-soft); }
+  .menu-item.current { color: var(--privacy); font-weight: 500; }
+  .menu-item.more { border-top: 1px solid var(--line); border-radius: 0; margin-top: 4px; padding-top: 10px; color: var(--muted); }
+  .warnline { font-size: 12px; color: var(--casual); background: var(--casual-soft); padding: 6px 10px; border-radius: var(--radius); line-height: 1.4; }
+  .tier .t-size { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .tier .t-delete { color: var(--danger); padding: 2px 6px; font-size: 12px; }
+  .tier.cached .t-sizetext::after { content: attr(data-cached); display: block; color: var(--privacy); }
   .lang-toggle { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--radius); overflow: hidden; }
   .lang-toggle button { border: 0; background: transparent; padding: 6px 10px; font-size: 13px; }
   .lang-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
@@ -265,7 +275,7 @@
   .tier .t-note { font-size: 13px; color: var(--muted); }
   .tier .t-size { font-size: 13px; color: var(--muted); text-align: end; white-space: nowrap; }
   .tier.recommended .t-name::after { content: attr(data-rec); margin-inline-start: 8px; font-size: 12px; color: var(--privacy); font-weight: 500; }
-  .tier.cached .t-size::after { content: attr(data-cached); display: block; color: var(--privacy); }
+
   .sysinfo { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 13px; }
   .sysinfo dt { color: var(--muted); }
   .sysinfo dd { margin: 0; }
@@ -305,6 +315,7 @@
     <span class="dot" aria-hidden="true"></span>
     <span id="modelPillText" data-i18n="engine.none">No engine yet</span>
   </button>
+  <div class="menu hidden" id="engineMenu" role="menu"></div>
   <button class="btn quiet" id="settingsBtn" type="button" data-i18n="settings">Settings</button>
   <div class="lang-toggle" role="group" aria-label="Interface language">
     <button type="button" data-ui="en" aria-pressed="true">EN</button>
@@ -330,6 +341,7 @@
     <div class="field">
       <span class="label" id="dialLabel" data-i18n="register">Tone and register</span>
       <div class="dial" id="dial" role="radiogroup" aria-labelledby="dialLabel"></div>
+      <p class="warnline hidden" id="literaryWarn"></p>
     </div>
 
     <div class="field" id="varietyField">
@@ -369,7 +381,7 @@
   <section class="stage" aria-label="Workspace">
     <div class="stage-bar">
       <button class="btn" id="openBtn" type="button" data-i18n="open">Open file…</button>
-      <input type="file" id="fileInput" class="hidden" accept=".txt,.md,.docx,.pdf,.srt,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+      <input type="file" id="fileInput" class="hidden" accept=".txt,.md,.docx,.pdf,.srt,.xlsx,.csv,.png,.jpg,.jpeg,.webp,.bmp,.gif,.tif,.tiff,text/plain,text/markdown,text/csv,application/pdf,image/*,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
       <span class="filechip hidden" id="fileChip"><span id="fileChipText"></span><button class="btn quiet" id="clearFile" type="button" data-i18n="clear" title="Remove file">✕</button></span>
       <div class="spacer"></div>
       <button class="btn hidden" id="editBtn" type="button" data-i18n="edit">Edit source</button>

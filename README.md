@@ -18,7 +18,11 @@ nabra/
   manifest.webmanifest  PWA manifest (id "/nabra/")
   privacy.html          privacy policy page for the Store listing
   icons/                app icons (192, 256, 512, maskable)
-  vendor/               self-hosted libraries: WebLLM 0.2.85, JSZip 3.10, pdf.js 6.4
+  xlsx.js               Excel / CSV helpers (pure functions)
+  ocr.js                on-device OCR (Tesseract.js) for images and scanned PDFs
+  bench/                Arabic literary benchmark + reference translations
+  vendor/               self-hosted libraries: WebLLM 0.2.85, JSZip 3.10, pdf.js 6.4,
+                        Tesseract.js 7 (+ ara/eng/fra/deu/spa/tur data, ~15 MB)
 ```
 
 ## Deploy (same pipeline as the other apps)
@@ -27,7 +31,7 @@ nabra/
    `https://haymohsen.github.io/nabra/`.
 2. Open that URL in Edge once and run a short translation: the first run downloads the chosen engine
    (0.6–5 GB) from the model repository and caches it in the browser.
-3. Package with PWABuilder (Windows), app version `1.2.2` / classic `1.2.2`, and submit in Partner
+3. Package with PWABuilder (Windows), app version `1.4.0` / classic `1.4.0`, and submit in Partner
    Center. The listing text and system requirements are in `STORE-LISTING.md`; the privacy policy URL
    is `https://haymohsen.github.io/nabra/privacy.html`.
 
@@ -58,7 +62,14 @@ nabra/
   (about a third fewer characters, far fewer tokens) except where stripping would make distinct
   words identical (jinās), in which case the vocalized text is kept. The displayed source is never
   changed.
-* **Memory settings** — "Low-memory mode" loads the engine with a 2048-token context window and
+* **Arabic devices reference** — when the register is literary and the source is Arabic, the system
+  prompt carries `core.ARABIC_DEVICES`, a compact reference of classical devices (jinās, sajʿ,
+  palindromes, Sufi terms, scriptural echoes, compressed verb forms, one-letter imperatives, the
+  accusative of command, rare desert lexicon, praise-disguised-as-blame, the senses of عين, two-layer
+  idioms) with the handling rule for each. `bench/arabic-literary.txt` holds twelve test sentences,
+  one per device, and `bench/arabic-literary-reference.md` the reference translations to grade
+  an engine against.
+* **Memory settings** — "Low-memory mode" loads the engine with a 3072-token context window and
   smaller chunks (same model, same quality); "Release graphics memory when idle" unloads the engine
   after 10 minutes and reloads it from the cache on the next request.
 * **Segmentation** — text is split on blank lines; blocks over 1,400 characters are split at sentence
@@ -72,6 +83,17 @@ nabra/
 * **PDF** — pdf.js extracts the text layer; lines are grouped into paragraphs by vertical spacing.
   Scanned PDFs (no text layer) are rejected with a message.
 * **Subtitles** — cue numbers and timecodes are preserved; only the text lines are translated.
+* **Excel / CSV** — `xlsx.js` translates shared strings and inline strings that contain letters
+  (numbers, dates and formulas are untouched) and sets `rightToLeft` on the sheet views for RTL
+  targets; CSV is parsed with quote handling and the delimiter is auto-detected.
+* **OCR** — `ocr.js` runs Tesseract (WASM, SIMD LSTM build) in a worker served from `vendor/tesseract/`.
+  Images are recognized directly; scanned PDFs are rendered page by page with pdf.js at 2.5× and
+  recognized. Languages come from the "From" selector (auto → Arabic + English); the six bundled
+  languages work offline, others are fetched once from the jsDelivr CDN. The service worker caches
+  the OCR files on first use.
+* **Engines** — several engines can be downloaded; the top-bar pill opens a quick switch between the
+  cached ones, the setup dialog deletes any cached engine, and the literary register warns when the
+  current engine is Mini or Light.
 
 ## Testing the pure logic
 

@@ -4,8 +4,10 @@
 import * as webllm from './vendor/web-llm.js';
 import * as core from './core.js';
 import * as docxlib from './docx.js';
+import * as xlsxlib from './xlsx.js';
+import * as ocr from './ocr.js';
 
-const APP_VERSION = '1.2.2';
+const APP_VERSION = '1.4.0';
 
 /* ---------- Interface strings ---------- */
 
@@ -94,7 +96,7 @@ const STRINGS = {
     'settings.autocheck.hint': 'Two extra passes per paragraph: a reviewer lists what is missing, added or changed, then the translation is corrected. Slower, much safer for poetry and prose.',
     'status.polishing': 'Polishing paragraph {n}…',
     'settings.lowmem': 'Low-memory mode',
-    'settings.lowmem.hint': 'Uses a shorter context window and smaller chunks: a few hundred MB less graphics memory, same engine, same quality. Takes effect the next time the engine loads.',
+    'settings.lowmem.hint': 'Uses a shorter context window (3072 instead of 4096 tokens) and smaller chunks: less graphics memory, same engine, same quality. Takes effect the next time the engine loads.',
     'settings.idle': 'Release graphics memory after 10 minutes of inactivity',
     'settings.idle.hint': 'Frees the GPU for other programs; the engine reloads from disk in a few seconds when you translate again.',
     'notes.none': 'No idioms or cultural references found in this paragraph.',
@@ -103,8 +105,27 @@ const STRINGS = {
     'file.docx.note': 'Paragraph styles are kept. Headers, footers and footnotes are not translated.',
     'file.pdf.note': 'Text extracted from the PDF. You can tidy it before translating.',
     'file.srt.note': 'Subtitle timing is kept; only the text is translated.',
+    'file.xlsx.note': 'Cells with text are translated; numbers, dates and formulas are kept.',
+    'file.csv.note': 'Cells with text are translated; numbers are kept.',
+    'file.ocr.note': 'Text recognized by OCR — check it before translating; recognition errors become translation errors.',
+    'file.nothing': 'No translatable text was found in this file.',
+    'ocr.title': 'Scanned document',
+    'ocr.body': 'This file has no text layer. Recognize the text on this PC with OCR? It takes a few seconds per page. Recognition languages: {langs}.',
+    'ocr.online': 'The OCR data for this language is not bundled with the app; it is downloaded once (internet needed).',
+    'ocr.go': 'Recognize text',
+    'ocr.loading': 'Preparing OCR… {what}',
+    'status.ocr': 'Recognizing text — page {n} of {total}',
+    'status.rendering': 'Rendering page {n} of {total}',
+    'dl.xlsx': 'Excel (.xlsx)',
+    'dl.csv': 'CSV (.csv)',
+    'engine.menu.more': 'Download or change engine…',
+    'engine.menu.current': 'current',
+    'tier.delete': 'Delete',
+    'confirm.tier.title': 'Delete this engine from the PC?',
+    'confirm.tier.body': '{tier} will be removed from disk. You can download it again later.',
+    'literary.warn': 'The literary register needs the Standard engine or better; the current engine is {tier}.',
     'file.error': 'Could not read this file.',
-    'file.pdf.empty': 'This PDF has no text layer (it is scanned). Nabra needs a PDF with selectable text.',
+    'file.pdf.empty': 'This PDF has no text layer (it is scanned). Open it again and choose "Recognize text" to read it with OCR.',
     'file.locked': 'Remove the file to edit the text freely.',
     'words': '{n} words',
     'engine.needed': 'Set up the engine first.',
@@ -124,7 +145,7 @@ const STRINGS = {
     'export.mismatch': 'The document structure changed, so the Word file cannot be rebuilt. Download as text instead.',
     'error.generic': 'Something went wrong: {msg}',
     'error.memory': 'This engine does not fit in this PC\'s graphics memory. Choose a lighter engine.',
-    'about.text': 'Nabra {v}. Runs the open language model on your PC with WebLLM (Apache 2.0). Word files via JSZip; PDFs via pdf.js.',
+    'about.text': 'Nabra {v}. Runs the open language model on your PC with WebLLM (Apache 2.0). Word and Excel files via JSZip; PDFs via pdf.js; OCR via Tesseract.js.',
     'tm.hit': 'from memory',
   },
   ar: {
@@ -211,7 +232,7 @@ const STRINGS = {
     'settings.autocheck.hint': 'مروران إضافيان لكل فقرة: مراجع يعدّ ما ضاع وما أُضيف وما تغيّر، ثم تُصحَّح الترجمة. أبطأ، وأكثر أماناً للشعر والنثر.',
     'status.polishing': 'جارٍ صقل الفقرة {n}…',
     'settings.lowmem': 'وضع الذاكرة المنخفضة',
-    'settings.lowmem.hint': 'يستخدم نافذة سياق أقصر ومقاطع أصغر: بضع مئات من الميغابايت أقل من ذاكرة الرسوم، بالمحرّك نفسه والجودة نفسها. يسري عند تحميل المحرّك في المرة التالية.',
+    'settings.lowmem.hint': 'يستخدم نافذة سياق أقصر (3072 بدل 4096 رمزاً) ومقاطع أصغر: ذاكرة رسوم أقل، بالمحرّك نفسه والجودة نفسها. يسري عند تحميل المحرّك في المرة التالية.',
     'settings.idle': 'تحرير ذاكرة الرسوم بعد 10 دقائق من عدم الاستخدام',
     'settings.idle.hint': 'يحرّر بطاقة الرسوم للبرامج الأخرى؛ يُعاد تحميل المحرّك من القرص خلال ثوانٍ عند الترجمة مجدداً.',
     'notes.none': 'لا توجد تعابير اصطلاحية أو إشارات ثقافية في هذه الفقرة.',
@@ -220,8 +241,27 @@ const STRINGS = {
     'file.docx.note': 'تُحفظ أنماط الفقرات. لا تُترجم الترويسات والتذييلات والحواشي.',
     'file.pdf.note': 'استُخرج النص من ملف PDF. يمكنك تنقيحه قبل الترجمة.',
     'file.srt.note': 'يُحفظ توقيت الترجمة؛ يُترجم النص فقط.',
+    'file.xlsx.note': 'تُترجم الخلايا النصية؛ وتُحفظ الأرقام والتواريخ والمعادلات.',
+    'file.csv.note': 'تُترجم الخلايا النصية؛ وتُحفظ الأرقام.',
+    'file.ocr.note': 'النص مستخرج بالتعرّف الضوئي — راجعه قبل الترجمة؛ أخطاء التعرّف تصبح أخطاء ترجمة.',
+    'file.nothing': 'لا يوجد نص قابل للترجمة في هذا الملف.',
+    'ocr.title': 'مستند ممسوح ضوئياً',
+    'ocr.body': 'هذا الملف بلا طبقة نصية. هل تريد التعرّف على النص داخل الجهاز (OCR)؟ يستغرق بضع ثوانٍ لكل صفحة. لغات التعرّف: {langs}.',
+    'ocr.online': 'بيانات التعرّف لهذه اللغة غير مضمّنة في التطبيق؛ تُنزَّل مرة واحدة (يلزم اتصال بالإنترنت).',
+    'ocr.go': 'تعرّف على النص',
+    'ocr.loading': 'جارٍ تجهيز التعرّف الضوئي… {what}',
+    'status.ocr': 'جارٍ التعرّف على النص — الصفحة {n} من {total}',
+    'status.rendering': 'جارٍ تحضير الصفحة {n} من {total}',
+    'dl.xlsx': 'إكسل (.xlsx)',
+    'dl.csv': 'CSV (.csv)',
+    'engine.menu.more': 'تنزيل محرّك أو تغييره…',
+    'engine.menu.current': 'الحالي',
+    'tier.delete': 'حذف',
+    'confirm.tier.title': 'حذف هذا المحرّك من الجهاز؟',
+    'confirm.tier.body': 'سيُحذف {tier} من القرص. يمكنك تنزيله لاحقاً.',
+    'literary.warn': 'النبرة الأدبية تحتاج المحرّك القياسي أو أعلى؛ المحرّك الحالي هو {tier}.',
     'file.error': 'تعذّر قراءة هذا الملف.',
-    'file.pdf.empty': 'ملف PDF هذا بلا طبقة نصية (ممسوح ضوئياً). يحتاج نبرة إلى ملف PDF بنص قابل للتحديد.',
+    'file.pdf.empty': 'ملف PDF هذا بلا طبقة نصية (ممسوح ضوئياً). افتحه مجدداً واختر «تعرّف على النص» لقراءته بالتعرّف الضوئي.',
     'file.locked': 'أزل الملف لتعديل النص بحرية.',
     'words': '{n} كلمة',
     'engine.needed': 'جهّز المحرّك أولاً.',
@@ -241,7 +281,7 @@ const STRINGS = {
     'export.mismatch': 'تغيّرت بنية المستند فتعذّر إعادة بناء ملف وورد. نزّله كنص بدلاً من ذلك.',
     'error.generic': 'حدث خطأ: {msg}',
     'error.memory': 'هذا المحرّك لا يتّسع في ذاكرة الرسوم في هذا الجهاز. اختر محرّكاً أخف.',
-    'about.text': 'نبرة {v}. يشغّل النموذج اللغوي المفتوح على جهازك عبر WebLLM (رخصة Apache 2.0). ملفات وورد عبر JSZip، وملفات PDF عبر pdf.js.',
+    'about.text': 'نبرة {v}. يشغّل النموذج اللغوي المفتوح على جهازك عبر WebLLM (رخصة Apache 2.0). ملفات وورد وإكسل عبر JSZip، وملفات PDF عبر pdf.js، والتعرّف الضوئي عبر Tesseract.js.',
     'tm.hit': 'من الذاكرة',
   },
 };
@@ -296,6 +336,7 @@ function applyLanguage() {
   updatePill();
   updateWordCount();
   $('#aboutText').textContent = t('about.text', { v: APP_VERSION });
+  updateLiteraryWarning();
   $('#notesLang').value = state.notesLang || state.ui;
   $('#lowMem').checked = state.lowMemory;
   $('#idleRelease').checked = state.idleRelease;
@@ -339,6 +380,7 @@ function renderDial() {
       dial.dataset.value = key;
       dial.querySelectorAll('button').forEach((x) => x.setAttribute('aria-checked', String(x === b)));
       saveCard();
+      updateLiteraryWarning();
     });
     dial.appendChild(b);
   }
@@ -440,7 +482,19 @@ function tierLabel(id) {
   return state.ui === 'ar' ? m.ar : m.en;
 }
 
+function updateLiteraryWarning() {
+  const box = $('#literaryWarn');
+  if (!box) return;
+  const register = $('#dial').dataset.value || 'corporate';
+  const tier = tierOf(state.modelId);
+  const weak = tier && (tier.key === 'mini' || tier.key === 'light');
+  const show = register === 'literary' && weak;
+  box.classList.toggle('hidden', !show);
+  if (show) box.textContent = t('literary.warn', { tier: tierLabel(state.modelId) });
+}
+
 function updatePill() {
+  updateLiteraryWarning();
   const pill = $('#modelPill');
   const text = $('#modelPillText');
   pill.classList.remove('ready', 'busy', 'error');
@@ -501,7 +555,8 @@ async function loadModel(modelId) {
   updatePill();
   try {
     if (!state.worker) state.worker = new Worker(new URL('./llm-worker.js', import.meta.url), { type: 'module' });
-    const chatOpts = state.lowMemory ? { context_window_size: 2048 } : { context_window_size: 4096 };
+    // 3072 leaves room for the literary-register reference (~1.4k tokens) plus a chunk and its translation.
+    const chatOpts = state.lowMemory ? { context_window_size: 3072 } : { context_window_size: 4096 };
     if (!state.engine) {
       state.engine = await webllm.CreateWebWorkerMLCEngine(state.worker, modelId, { initProgressCallback: onInitProgress }, chatOpts);
     } else {
@@ -560,8 +615,9 @@ function temperatureFor(card) {
 }
 
 /** The text actually sent to the engine: Arabic diacritics are dropped (far fewer tokens, same letters). */
-function modelText(text) {
-  return core.detectScript(text) === 'arabic' ? core.prepareForModel(text) : text;
+function modelText(text, card) {
+  if (core.detectScript(text) !== 'arabic') return text;
+  return core.prepareForModel(text, { literary: !!card && card.register === 'literary' });
 }
 
 async function generate(messages, { onToken, maxTokens = 1024, temperature = 0.2 } = {}) {
@@ -652,7 +708,11 @@ function setMode(mode) {
 }
 
 function sourceText() {
-  return state.doc.kind === 'docx' || state.doc.kind === 'srt' ? state.doc.text : $('#source').value;
+  return ['docx', 'srt', 'xlsx', 'csv'].includes(state.doc.kind) ? state.doc.text : $('#source').value;
+}
+
+function cellBody(text) {
+  return (text || '').replace(/\r\n?/g, '\n').replace(/\n[ \t]*(\n[ \t]*)+/g, '\n').trim();
 }
 
 function updateWordCount() {
@@ -688,6 +748,9 @@ async function loadFile(file) {
     if (ext === 'docx') await loadDocx(file);
     else if (ext === 'pdf') await loadPdf(file);
     else if (ext === 'srt') await loadSrt(file);
+    else if (ext === 'xlsx') await loadXlsx(file);
+    else if (ext === 'csv') await loadCsv(file);
+    else if (['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif', 'tif', 'tiff'].includes(ext)) await loadImage(file);
     else await loadText(file);
     fillDownloadFormats();
     updateWordCount();
@@ -765,13 +828,115 @@ async function loadPdf(file) {
   }
   const text = pages.join('\n\n');
   if (!text.trim()) {
-    const err = new Error('empty pdf');
-    err.nabraMessage = t('file.pdf.empty');
-    throw err;
+    const langs = ocr.ocrLanguages($('#srcLang').value);
+    if (!(await askOcr(langs))) {
+      const err = new Error('empty pdf');
+      err.nabraMessage = t('file.pdf.empty');
+      throw err;
+    }
+    const canvases = await ocr.renderPdfPages(pdf, { scale: 2.5, onPage: (n, total) => setStatus(t('status.rendering', { n, total }), { progress: n / total }) });
+    const texts = await runOcr(canvases, langs);
+    const recognized = texts.join('\n\n').trim();
+    if (!recognized) {
+      const err = new Error('nothing recognized');
+      err.nabraMessage = t('file.nothing');
+      throw err;
+    }
+    state.doc = { kind: 'pdf', name: file.name, text: recognized };
+    $('#source').value = recognized;
+    showFile(file.name, `${t('file.loaded', { name: file.name, n: core.segmentize(recognized).blocks.length })} — ${t('file.ocr.note')}`, false);
+    setStatus(t('status.idle'));
+    return;
   }
   state.doc = { kind: 'pdf', name: file.name, text };
   $('#source').value = text;
   showFile(file.name, `${t('file.loaded', { name: file.name, n: core.segmentize(text).blocks.length })} — ${t('file.pdf.note')}`, false);
+}
+
+async function askOcr(langs) {
+  const names = langs.map((l) => l.toUpperCase()).join(' + ');
+  const extra = ocr.isBundled(langs) ? '' : ' ' + t('ocr.online');
+  return messageBox(t('ocr.title'), t('ocr.body', { langs: names }) + extra, { okLabel: t('ocr.go') });
+}
+
+async function runOcr(images, langs) {
+  setStatus(t('ocr.loading', { what: '' }), { indeterminate: true });
+  return ocr.recognize(images, langs, {
+    onProgress: (m) => {
+      if (m && m.status && m.status !== 'recognizing text') setStatus(t('ocr.loading', { what: m.status }), { indeterminate: true });
+      else if (m && typeof m.progress === 'number') setStatus(t('status.ocr', { n: '…', total: images.length }), { progress: m.progress });
+    },
+    onPage: (n, total) => setStatus(t('status.ocr', { n, total }), { progress: n / total }),
+  });
+}
+
+async function loadImage(file) {
+  const langs = ocr.ocrLanguages($('#srcLang').value);
+  if (!(await askOcr(langs))) return;
+  const texts = await runOcr([file], langs);
+  const text = texts.join('\n\n').trim();
+  if (!text) {
+    const err = new Error('nothing recognized');
+    err.nabraMessage = t('file.nothing');
+    throw err;
+  }
+  state.doc = { kind: 'image', name: file.name, text };
+  $('#source').value = text;
+  showFile(file.name, `${t('file.loaded', { name: file.name, n: core.segmentize(text).blocks.length })} — ${t('file.ocr.note')}`, false);
+  setStatus(t('status.idle'));
+}
+
+async function loadXlsx(file) {
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const sharedEntry = zip.file('xl/sharedStrings.xml');
+  const sharedXml = sharedEntry ? await sharedEntry.async('string') : '';
+  const sheetFiles = Object.keys(zip.files).filter((p) => /^xl\/worksheets\/sheet\d+\.xml$/.test(p)).sort();
+  const sheets = [];
+  for (const path of sheetFiles) sheets.push({ path, xml: await zip.file(path).async('string') });
+  const map = [];
+  const texts = [];
+  if (sharedXml) {
+    const { items } = xlsxlib.xlsxSharedStrings(sharedXml, { DOMParser: window.DOMParser });
+    items.forEach((it) => {
+      const body = cellBody(it.text);
+      if (it.translatable && body) { map.push({ kind: 'shared', index: it.index }); texts.push(body); }
+    });
+  }
+  sheets.forEach((sheet, s) => {
+    const { items } = xlsxlib.xlsxInlineStrings(sheet.xml, { DOMParser: window.DOMParser });
+    items.forEach((it) => {
+      const body = cellBody(it.text);
+      if (it.translatable && body) { map.push({ kind: 'inline', sheet: s, index: it.index }); texts.push(body); }
+    });
+  });
+  if (!texts.length) {
+    const err = new Error('no text');
+    err.nabraMessage = t('file.nothing');
+    throw err;
+  }
+  state.doc = { kind: 'xlsx', name: file.name, zip, sharedXml, sheets, map, text: texts.join('\n\n') };
+  $('#source').value = state.doc.text;
+  showFile(file.name, `${t('file.loaded', { name: file.name, n: texts.length })} — ${t('file.xlsx.note')}`, true);
+}
+
+async function loadCsv(file) {
+  const raw = await file.text();
+  const { rows, delimiter } = xlsxlib.parseCsv(raw);
+  const cells = xlsxlib.csvTranslatableCells(rows);
+  const map = [];
+  const texts = [];
+  cells.forEach((c) => {
+    const body = cellBody(c.text);
+    if (body) { map.push({ r: c.r, c: c.c }); texts.push(body); }
+  });
+  if (!texts.length) {
+    const err = new Error('no text');
+    err.nabraMessage = t('file.nothing');
+    throw err;
+  }
+  state.doc = { kind: 'csv', name: file.name, rows, delimiter, map, text: texts.join('\n\n') };
+  $('#source').value = state.doc.text;
+  showFile(file.name, `${t('file.loaded', { name: file.name, n: texts.length })} — ${t('file.csv.note')}`, true);
 }
 
 /* ---------- Review rows ---------- */
@@ -905,7 +1070,7 @@ async function checkBlock(i, card, { repair = true } = {}) {
   const { text: draft, done } = blockOutput(i);
   if (!done || !draft.trim()) return null;
   const notesLang = state.notesLang || state.ui;
-  const src = modelText(block.text);
+  const src = modelText(block.text, card);
   const runCheck = async (translation) => core.parseCheck(await generate(
     core.buildCheckMessages(card, src, translation, notesLang),
     { temperature: 0.1, maxTokens: 500 },
@@ -1055,7 +1220,7 @@ async function runSegments(card, segments, { useMemory = true, temperature = 0.2
 }
 
 async function translateSingle(card, seg, temperature) {
-  const messages = core.buildTranslateMessages(card, modelText(seg.text));
+  const messages = core.buildTranslateMessages(card, modelText(seg.text, card));
   let last = 0;
   const raw = await generate(messages, {
     temperature,
@@ -1078,7 +1243,7 @@ async function translateSingle(card, seg, temperature) {
 }
 
 async function translateBatch(card, segs, temperature) {
-  const messages = core.buildBatchMessages(card, segs.map((s) => modelText(s.text)));
+  const messages = core.buildBatchMessages(card, segs.map((s) => modelText(s.text, card)));
   const chars = segs.reduce((n, s) => n + s.text.length, 0);
   segs.forEach((s) => paintRow(s.blockIndex, { id: s.id, text: '' }));
   const raw = await generate(messages, { temperature, maxTokens: maxTokensFor(chars) + segs.length * 8 });
@@ -1120,7 +1285,7 @@ async function polishBlock(i) {
   state.abort = false;
   setStatus(t('status.polishing', { n: i + 1 }), { indeterminate: true });
   try {
-    const messages = core.buildPolishMessages(state.card, modelText(block.text), draft);
+    const messages = core.buildPolishMessages(state.card, modelText(block.text, state.card), draft);
     let last = 0;
     const raw = await generate(messages, {
       temperature: temperatureFor(state.card),
@@ -1165,7 +1330,7 @@ async function explainBlock(i) {
   state.abort = false;
   try {
     const { text } = blockOutput(i);
-    const messages = core.buildExplainMessages(state.card, modelText(state.blocks[i].text), text, state.notesLang || state.ui);
+    const messages = core.buildExplainMessages(state.card, modelText(state.blocks[i].text, state.card), text, state.notesLang || state.ui);
     const raw = await generate(messages, { temperature: 0.2, maxTokens: 700 });
     const lines = core.parseNoteLines(raw);
     if (!lines.length) {
@@ -1189,7 +1354,7 @@ async function explainBlock(i) {
 
 async function suggestGlossary() {
   if (state.running) { setStatus(t('engine.busy')); return; }
-  const text = modelText(sourceText()).slice(0, 6000);
+  const text = modelText(sourceText(), readCard()).slice(0, 6000);
   if (!text.trim()) { setStatus(t('source.empty')); return; }
   if (!(await ensureEngine())) return;
   state.running = true;
@@ -1221,7 +1386,9 @@ function fillDownloadFormats() {
   sel.innerHTML = '';
   const kinds = state.doc.kind === 'docx' ? ['docx', 'txt']
     : state.doc.kind === 'srt' ? ['srt', 'txt']
-      : ['txt', 'md', 'docx'];
+      : state.doc.kind === 'xlsx' ? ['xlsx', 'txt']
+        : state.doc.kind === 'csv' ? ['csv', 'txt']
+          : ['txt', 'md', 'docx'];
   for (const k of kinds) {
     const o = document.createElement('option');
     o.value = k;
@@ -1267,6 +1434,44 @@ async function download() {
     downloadBlob(new Blob([core.serializeSrt(cues)], { type: 'text/plain;charset=utf-8' }), `${name}.srt`);
     return;
   }
+  if (fmt === 'csv') {
+    if (state.blocks.length !== state.doc.map.length) {
+      await messageBox(t('download'), t('export.mismatch'), { okOnly: true });
+      return;
+    }
+    const rows = state.doc.rows.map((r) => r.slice());
+    state.doc.map.forEach((m, k) => { rows[m.r][m.c] = blockOutput(k).text; });
+    downloadBlob(new Blob(['\uFEFF' + xlsxlib.serializeCsv(rows, state.doc.delimiter)], { type: 'text/csv;charset=utf-8' }), `${name}.csv`);
+    return;
+  }
+  if (fmt === 'xlsx') {
+    if (state.blocks.length !== state.doc.map.length) {
+      await messageBox(t('download'), t('export.mismatch'), { okOnly: true });
+      return;
+    }
+    const zip = state.doc.zip;
+    const sharedOut = [];
+    const inlineOut = state.doc.sheets.map(() => []);
+    state.doc.map.forEach((m, k) => {
+      const text = blockOutput(k).text;
+      if (m.kind === 'shared') sharedOut[m.index] = text;
+      else inlineOut[m.sheet][m.index] = text;
+    });
+    if (state.doc.sharedXml) {
+      const { doc, items } = xlsxlib.xlsxSharedStrings(state.doc.sharedXml, { DOMParser: window.DOMParser });
+      xlsxlib.xlsxApplyStrings(doc, items, sharedOut);
+      zip.file('xl/sharedStrings.xml', xlsxlib.xlsxSerialize(doc, { XMLSerializer: window.XMLSerializer }));
+    }
+    state.doc.sheets.forEach((sheet, s) => {
+      const { doc, items } = xlsxlib.xlsxInlineStrings(sheet.xml, { DOMParser: window.DOMParser });
+      xlsxlib.xlsxApplyStrings(doc, items, inlineOut[s]);
+      xlsxlib.xlsxSetDirection(doc, rtl);
+      zip.file(sheet.path, xlsxlib.xlsxSerialize(doc, { XMLSerializer: window.XMLSerializer }));
+    });
+    const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    downloadBlob(blob, `${name}.xlsx`);
+    return;
+  }
   const mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
   if (state.doc.kind === 'docx') {
     if (state.blocks.length !== state.doc.map.length) {
@@ -1308,10 +1513,11 @@ async function copyText(text) {
 
 /* ---------- Dialogs ---------- */
 
-function messageBox(title, body, { okOnly = false } = {}) {
+function messageBox(title, body, { okOnly = false, okLabel = null } = {}) {
   const dlg = $('#msgDlg');
   $('#msgTitle').textContent = title;
   $('#msgBody').textContent = body;
+  $('#msgOk').textContent = okLabel || t('ok');
   $('#msgCancel').classList.toggle('hidden', okOnly);
   return new Promise((resolve) => {
     const done = (v) => { dlg.close(); $('#msgOk').onclick = null; $('#msgCancel').onclick = null; resolve(v); };
@@ -1349,15 +1555,32 @@ async function openSetup() {
   for (const m of core.MODEL_TIERS) {
     const label = document.createElement('label');
     label.className = 'tier' + (m.key === recommended ? ' recommended' : '');
-    label.innerHTML = `<input type="radio" name="tier" value="${m.id}"><span><span class="t-name"></span><span class="t-note" style="display:block"></span></span><span class="t-size"></span>`;
+    label.innerHTML = `<input type="radio" name="tier" value="${m.id}"><span><span class="t-name"></span><span class="t-note" style="display:block"></span></span><span class="t-size"><span class="t-sizetext"></span><button type="button" class="btn quiet small t-delete hidden"></button></span>`;
     label.querySelector('.t-name').dataset.rec = t('tier.recommended');
-    label.querySelector('.t-size').dataset.cached = t('tier.cached');
+    label.querySelector('.t-sizetext').dataset.cached = t('tier.cached');
     label.querySelector('.t-name').textContent = state.ui === 'ar' ? m.ar : m.en;
     label.querySelector('.t-note').textContent = state.ui === 'ar' ? m.note_ar : m.note_en;
-    label.querySelector('.t-size').textContent = `${m.download_gb} GB ${t('tier.download')} · ${m.gpu_gb} GB ${t('tier.gpu')}`;
+    label.querySelector('.t-sizetext').textContent = `${m.download_gb} GB ${t('tier.download')} · ${m.gpu_gb} GB ${t('tier.gpu')}`;
     label.querySelector('input').checked = m.id === chosen;
+    const del = label.querySelector('.t-delete');
+    del.textContent = t('tier.delete');
+    del.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!(await messageBox(t('confirm.tier.title'), t('confirm.tier.body', { tier: state.ui === 'ar' ? m.ar : m.en })))) return;
+      try { await webllm.deleteModelAllInfoInCache(m.id); } catch (err) { console.error(err); }
+      if (state.modelId === m.id) {
+        if (state.engine && state.modelState === 'ready') { try { await state.engine.unload(); } catch (err) { /* ignore */ } }
+        state.modelState = 'none';
+        state.modelId = null;
+        localStorage.removeItem('nabra.model');
+        updatePill();
+      }
+      label.classList.remove('cached');
+      del.classList.add('hidden');
+    });
     tiers.appendChild(label);
-    webllm.hasModelInCache(m.id).then((cached) => { if (cached) label.classList.add('cached'); }).catch(() => {});
+    webllm.hasModelInCache(m.id).then((cached) => { if (cached) { label.classList.add('cached'); del.classList.remove('hidden'); } }).catch(() => {});
   }
   $('#setupProgress').classList.add('hidden');
   $('#setupError').classList.add('hidden');
@@ -1388,6 +1611,37 @@ async function startSetup() {
   }
 }
 
+async function toggleEngineMenu() {
+  const menu = $('#engineMenu');
+  if (!menu.classList.contains('hidden')) { menu.classList.add('hidden'); return; }
+  menu.innerHTML = '';
+  const cachedIds = [];
+  for (const m of core.MODEL_TIERS) {
+    let cached = false;
+    try { cached = await webllm.hasModelInCache(m.id); } catch (e) { cached = false; }
+    if (cached) cachedIds.push(m.id);
+  }
+  for (const id of cachedIds) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'menu-item' + (id === state.modelId ? ' current' : '');
+    b.textContent = tierLabel(id) + (id === state.modelId ? ` · ${t('engine.menu.current')}` : '');
+    b.addEventListener('click', async () => {
+      menu.classList.add('hidden');
+      if (id === state.modelId || state.running) return;
+      try { await loadModel(id); } catch (e) { /* status already shows the error */ }
+    });
+    menu.appendChild(b);
+  }
+  const more = document.createElement('button');
+  more.type = 'button';
+  more.className = 'menu-item more';
+  more.textContent = t('engine.menu.more');
+  more.addEventListener('click', () => { menu.classList.add('hidden'); openSetup(); });
+  menu.appendChild(more);
+  menu.classList.remove('hidden');
+}
+
 /* ---------- Wiring ---------- */
 
 function wire() {
@@ -1396,10 +1650,15 @@ function wire() {
     localStorage.setItem('nabra.ui', state.ui);
     applyLanguage();
   }));
-  $('#modelPill').addEventListener('click', () => {
+  $('#modelPill').addEventListener('click', (e) => {
+    e.stopPropagation();
     if (state.modelState === 'sleeping') { ensureEngine(); return; }
-    if (state.modelState !== 'loading') openSetup();
+    if (state.modelState === 'loading') return;
+    if (state.modelState !== 'ready') { openSetup(); return; }
+    toggleEngineMenu();
   });
+  document.addEventListener('click', () => $('#engineMenu').classList.add('hidden'));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('#engineMenu').classList.add('hidden'); });
   $('#settingsBtn').addEventListener('click', () => $('#settingsDlg').showModal());
   $('#settingsClose').addEventListener('click', () => $('#settingsDlg').close());
   $('#changeModel').addEventListener('click', () => { $('#settingsDlg').close(); openSetup(); });

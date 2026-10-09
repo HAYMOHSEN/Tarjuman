@@ -54,6 +54,11 @@ Whole documents, not just snippets:
 - Word (.docx): paragraph styles, headings, numbering and tables are kept; right-to-left layout is
   set automatically for Arabic, Urdu, Persian and Hebrew.
 - PDF with a text layer: text is extracted, translated and exported as Word or text.
+- Excel (.xlsx) and CSV tables: cells with text are translated; numbers, dates and formulas stay
+  untouched, and sheets switch to right-to-left for Arabic.
+- Scanned documents and images (scanned PDF, PNG, JPG, TIFF): built-in on-device OCR recognizes
+  the text first (Arabic, English, French, German, Spanish and Turkish bundled; other languages
+  download once), then translates it. Nothing is uploaded.
 - Plain text, Markdown and subtitle (.srt) files: timing and formatting are preserved.
 - A glossary locks names, product terms and abbreviations so they stay consistent; Nabra can suggest
   the terms from the text.
@@ -87,8 +92,10 @@ Nabra contains no accounts, no ads, no analytics and no tracking.
 لاستبدال الإشارات الرياضية والغذائية والمناسبات بما يعرفه القارئ.
 
 مستندات كاملة لا مقاطع فقط: ملفات وورد مع الحفاظ على الأنماط والعناوين والترقيم والجداول وضبط الاتجاه
-من اليمين إلى اليسار تلقائياً، وملفات PDF النصية، والنصوص العادية وماركداون وملفات ترجمة الفيديو
-(SRT) مع الحفاظ على التوقيت. مسرد يثبّت الأسماء والمصطلحات والاختصارات، وذاكرة ترجمة على جهازك تعيد
+من اليمين إلى اليسار تلقائياً، وجداول إكسل وCSV مع بقاء الأرقام والتواريخ والمعادلات كما هي، وملفات PDF
+النصية، والمستندات الممسوحة ضوئياً والصور عبر تعرّف ضوئي يعمل داخل الجهاز (العربية والإنجليزية والفرنسية
+والألمانية والإسبانية والتركية مضمّنة)، والنصوص العادية وماركداون وملفات ترجمة الفيديو (SRT) مع الحفاظ
+على التوقيت. مسرد يثبّت الأسماء والمصطلحات والاختصارات، وذاكرة ترجمة على جهازك تعيد
 الجمل المترجمة سابقاً فوراً.
 
 اثنتان وعشرون لغة، وواجهة بالعربية والإنجليزية. عند أول تشغيل تختار محرّك الترجمة (خفيف، قياسي،
@@ -108,6 +115,9 @@ Nabra contains no accounts, no ads, no analytics and no tracking.
 - Localize cultural references for the target reader
 - Word (.docx) files keep styles, headings, numbering and tables; RTL layout set automatically
 - PDF, text, Markdown and subtitle (.srt) files
+- Excel and CSV tables: text cells translated, numbers and formulas kept
+- Scanned PDFs and images read with on-device OCR, then translated
+- Several engines can be kept on disk and switched from the top bar
 - Glossary to lock names and terms, with automatic suggestions
 - Translation memory reuses sentences you translated before
 - Side-by-side review with per-paragraph redo and copy
@@ -128,7 +138,7 @@ translator, offline translation, Arabic translator, formal tone, document transl
 | Graphics | Graphics adapter with WebGPU support (DirectX 12, Shader Model 6): Intel UHD 620 / Iris Xe or newer, AMD Radeon Vega or newer, NVIDIA GTX 900 series or newer, Qualcomm Adreno (Snapdragon X) | Dedicated GPU with 6 GB or more: NVIDIA RTX 3060 / AMD RX 6600 or better |
 | Video memory | 2 GB (shared memory on integrated graphics is fine for the Light engine) | 6 GB or more (Pro engine) |
 | DirectX | Version 12 | Version 12 |
-| Storage | 3 GB free (app + Light engine) | 8 GB free (Standard or Pro engine) |
+| Storage | 3 GB free (app with OCR data + Light engine) | 8 GB free (Standard or Pro engine) |
 | Keyboard / Mouse | Required | Required |
 | Touch | Not required | — |
 | Internet | Required once, to download the chosen engine (0.6–5 GB). Not needed afterwards. | Broadband for the first download |
@@ -136,8 +146,8 @@ translator, offline translation, Arabic translator, formal tone, document transl
 **Notes field:** "Nabra runs an AI language model on the graphics chip through WebGPU. The engine is
 downloaded once on first launch (Mini 0.6 GB, Light 1.1 GB, Standard 2.4 GB, Pro 5 GB) and the app
 then works fully offline. A low-memory mode in Settings trims graphics-memory use for 8 GB machines. Translation speed depends on the graphics adapter: a few seconds per
-paragraph on a modern integrated GPU, faster on a dedicated GPU. Scanned PDFs without a text layer
-are not supported."
+paragraph on a modern integrated GPU, faster on a dedicated GPU. Scanned PDFs and images are read with
+on-device OCR (Tesseract); recognition quality depends on scan quality, and handwriting is not supported."
 
 ### Which engine fits which PC (for the description or support replies)
 
