@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nabra — private translator</title>
+<meta name="description" content="Offline AI translator that adapts tone and register, explains idioms and translates whole documents. Nothing leaves your PC.">
+<meta name="theme-color" content="#182033">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" crossorigin="anonymous" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ink: #182033;
+    --paper: #EEF1F5;
+    --panel: #FFFFFF;
+    --panel-2: #F6F8FB;
+    --line: #D5DBE5;
+    --line-strong: #B9C2D0;
+    --muted: #5C6678;
+    --formal: #27467F;
+    --formal-soft: #E6ECF8;
+    --casual: #C2642A;
+    --casual-soft: #FBEEE4;
+    --slate: #4C5668;
+    --slate-soft: #ECEFF4;
+    --privacy: #1F7A5A;
+    --privacy-soft: #E3F3EC;
+    --danger: #B3261E;
+    --danger-soft: #FBEAE8;
+    --focus: #27467F;
+    --radius: 6px;
+    --font: 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, 'Segoe UI', sans-serif;
+    --font-ar: 'IBM Plex Sans Arabic', 'IBM Plex Sans', 'Segoe UI', Tahoma, sans-serif;
+    --rail: 330px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #E8ECF3;
+      --paper: #111622;
+      --panel: #1A2132;
+      --panel-2: #1F2739;
+      --line: #2B3449;
+      --line-strong: #3C4760;
+      --muted: #9AA5BA;
+      --formal: #8FB0F0;
+      --formal-soft: #22304E;
+      --casual: #EFA46A;
+      --casual-soft: #3F2A1D;
+      --slate: #B4BDCD;
+      --slate-soft: #27303F;
+      --privacy: #62CDA2;
+      --privacy-soft: #1B3A30;
+      --danger: #F08C84;
+      --danger-soft: #3F2320;
+      --focus: #8FB0F0;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink);
+    background: var(--paper);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    height: 100vh;
+    overflow: hidden;
+  }
+  [dir="rtl"] body, [dir="rtl"] { font-family: var(--font-ar); }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  h1, h2, h3 { font-weight: 600; margin: 0; }
+  h2 { font-size: 20px; }
+  h3 { font-size: 16px; }
+  p { margin: 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  .hidden { display: none !important; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border-radius: var(--radius);
+    border: 1px solid var(--line-strong); background: var(--panel);
+    color: var(--ink); line-height: 1.2; white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--slate); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); font-weight: 500; }
+  .btn.primary:hover { opacity: .92; }
+  .btn.danger { color: var(--danger); border-color: var(--danger); }
+  .btn.quiet { border-color: transparent; background: transparent; padding: 6px 8px; }
+  .btn.quiet:hover { background: var(--slate-soft); }
+  .btn.wide { width: 100%; justify-content: center; padding: 11px 14px; font-size: 15px; }
+  .icon { width: 16px; height: 16px; flex: none; }
+
+  /* ---------- Top bar ---------- */
+  .top {
+    display: flex; align-items: center; gap: 16px;
+    padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: baseline; gap: 8px; }
+  .brand .latin { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+  .brand .arabic { font-family: var(--font-ar); font-size: 18px; color: var(--muted); }
+  .top .spacer { flex: 1; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 5px 12px 5px 10px; border-radius: 999px; font-size: 13px;
+    border: 1px solid var(--line); background: var(--panel-2); cursor: pointer;
+  }
+  .pill .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line-strong); flex: none; }
+  .pill.ready { border-color: var(--privacy); background: var(--privacy-soft); color: var(--privacy); }
+  .pill.ready .dot { background: var(--privacy); }
+  .pill.busy .dot { background: var(--casual); animation: pulse 1.2s ease-in-out infinite; }
+  .pill.error { border-color: var(--danger); background: var(--danger-soft); color: var(--danger); }
+  .pill.error .dot { background: var(--danger); }
+  @keyframes pulse { 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .pill.busy .dot { animation: none; } }
+  .lang-toggle { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--radius); overflow: hidden; }
+  .lang-toggle button { border: 0; background: transparent; padding: 6px 10px; font-size: 13px; }
+  .lang-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+  /* ---------- Layout ---------- */
+  .work {
+    display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); min-height: 0; overflow: hidden;
+  }
+  .rail {
+    border-inline-end: 1px solid var(--line); background: var(--panel);
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  .rail-scroll { flex: 1; overflow: auto; padding: 16px 18px 12px; display: flex; flex-direction: column; gap: 16px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field > label, .field > .label { font-size: 13px; color: var(--muted); font-weight: 500; }
+  .field select, .field input[type="text"], .field textarea {
+    width: 100%; padding: 8px 10px; border-radius: var(--radius);
+    border: 1px solid var(--line-strong); background: var(--panel); color: var(--ink);
+  }
+  .field textarea { resize: vertical; min-height: 64px; line-height: 1.5; }
+  .pair { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 6px; align-items: end; }
+  .pair select { min-width: 0; font-size: 14px; padding-inline: 8px; }
+  .pair .swap { padding: 8px; border-radius: var(--radius); border: 1px solid var(--line-strong); background: var(--panel); }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .check input { width: 16px; height: 16px; accent-color: var(--formal); }
+
+  /* The register dial: the one element allowed to be loud. */
+  .dial { display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--line-strong); border-radius: var(--radius); overflow: hidden; }
+  .dial button {
+    display: grid; grid-template-columns: 14px 1fr; gap: 10px; align-items: center;
+    text-align: start; padding: 7px 12px; border: 0; background: var(--panel);
+    border-bottom: 1px solid var(--line);
+  }
+  .dial button:last-child { border-bottom: 0; }
+  .dial button .mark { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line-strong); background: transparent; }
+  .dial button .name { font-weight: 500; }
+  .dial button .hint { display: block; font-size: 12px; color: var(--muted); line-height: 1.35; }
+  .dial button[aria-checked="true"] { background: var(--tone-soft); }
+  .dial button[aria-checked="true"] .mark { background: var(--tone); border-color: var(--tone); }
+  .dial button[aria-checked="true"] .name { color: var(--tone); }
+  .dial button[data-tone="corporate"], .dial button[data-tone="academic"] { --tone: var(--formal); --tone-soft: var(--formal-soft); }
+  .dial button[data-tone="neutral"] { --tone: var(--slate); --tone-soft: var(--slate-soft); }
+  .dial button[data-tone="friendly"], .dial button[data-tone="marketing"] { --tone: var(--casual); --tone-soft: var(--casual-soft); }
+
+  .rail .actions { display: flex; flex-direction: column; gap: 8px; padding: 12px 18px 14px; border-top: 1px solid var(--line); background: var(--panel); }
+
+  /* ---------- Workspace ---------- */
+  .stage { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .stage-bar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 10px 20px; border-bottom: 1px solid var(--line); background: var(--panel);
+  }
+  .stage-bar .spacer { flex: 1; }
+  .filechip {
+    display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: var(--radius);
+    background: var(--formal-soft); color: var(--formal); font-size: 13px; max-width: 360px;
+  }
+  .filechip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .compose { flex: 1; display: flex; flex-direction: column; padding: 20px; gap: 10px; min-height: 0; }
+  .compose textarea {
+    flex: 1; width: 100%; min-height: 320px; padding: 16px 18px; border-radius: 8px;
+    border: 1px solid var(--line-strong); background: var(--panel); color: var(--ink);
+    font-size: 15px; line-height: 1.65; resize: none;
+  }
+  .compose textarea:focus-visible { outline: none; border-color: var(--formal); box-shadow: 0 0 0 3px var(--formal-soft); }
+  .compose.dragover textarea { border-style: dashed; border-color: var(--formal); background: var(--formal-soft); }
+  .compose .foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+
+  .review { flex: 1; overflow: auto; padding: 0 0 40px; }
+  .review-head {
+    position: sticky; top: 0; z-index: 1; display: grid; grid-template-columns: 1fr 1fr;
+    background: var(--paper); border-bottom: 1px solid var(--line);
+    font-size: 13px; color: var(--muted); font-weight: 500;
+  }
+  .review-head > div { padding: 8px 20px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--line); }
+  .row:nth-child(even) { background: color-mix(in srgb, var(--panel) 55%, var(--paper)); }
+  .cell { padding: 14px 20px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; }
+  .cell.src { color: var(--muted); border-inline-end: 1px solid var(--line); }
+  .cell.out { position: relative; color: var(--ink); min-height: 48px; }
+  .cell.out.pending { color: var(--muted); font-style: italic; }
+  .cell.out.streaming .outbody::after { content: '▍'; color: var(--casual); animation: pulse 1s steps(2) infinite; }
+  .cell.out.error { color: var(--danger); }
+  .rowtools { display: flex; gap: 2px; margin-top: 8px; opacity: 0; transition: opacity .15s; }
+  .row:hover .rowtools, .row:focus-within .rowtools { opacity: 1; }
+  .rowtools .btn { font-size: 12px; padding: 4px 8px; }
+  .cell[dir="rtl"] { text-align: right; font-family: var(--font-ar); }
+  .cell[dir="ltr"] { text-align: left; font-family: var(--font); }
+  .notes { text-align: start; margin-top: 10px; padding: 10px 12px; border-inline-start: 3px solid var(--casual); background: var(--casual-soft); border-radius: 0; font-size: 13px; line-height: 1.5; white-space: normal; }
+  .notes ul { margin: 0; padding-inline-start: 18px; }
+  .notes li + li { margin-top: 4px; }
+  .notes .n-empty { color: var(--muted); font-style: italic; }
+
+  /* ---------- Status strip ---------- */
+  .status {
+    display: flex; align-items: center; gap: 14px; padding: 8px 20px;
+    border-top: 1px solid var(--line); background: var(--panel); font-size: 13px; color: var(--muted);
+    min-height: 44px;
+  }
+  .status .bar { flex: 1; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; max-width: 420px; }
+  .status .bar > i { display: block; height: 100%; width: 0; background: var(--formal); transition: width .2s; }
+  .status .bar.indeterminate > i { width: 30%; animation: slide 1.1s linear infinite; }
+  @keyframes slide { from { transform: translateX(-120%); } to { transform: translateX(400%); } }
+  @media (prefers-reduced-motion: reduce) { .status .bar.indeterminate > i { animation: none; width: 100%; opacity: .5; } }
+
+  /* ---------- Dialogs ---------- */
+  dialog {
+    border: 1px solid var(--line-strong); border-radius: 10px; padding: 0;
+    background: var(--panel); color: var(--ink); max-width: 640px; width: calc(100% - 40px);
+    box-shadow: 0 20px 60px rgba(8, 12, 24, .25);
+  }
+  dialog::backdrop { background: rgba(10, 14, 26, .45); }
+  .dlg { display: flex; flex-direction: column; gap: 16px; padding: 22px 24px; }
+  .dlg .dlg-foot { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+  .dlg .dlg-foot .spacer { flex: 1; }
+  .tiers { display: flex; flex-direction: column; border: 1px solid var(--line-strong); border-radius: var(--radius); overflow: hidden; }
+  .tier {
+    display: grid; grid-template-columns: 20px 1fr auto; gap: 12px; align-items: start;
+    padding: 12px 14px; border-bottom: 1px solid var(--line); cursor: pointer;
+  }
+  .tier:last-child { border-bottom: 0; }
+  .tier input { margin-top: 4px; accent-color: var(--formal); }
+  .tier .t-name { font-weight: 500; }
+  .tier .t-note { font-size: 13px; color: var(--muted); }
+  .tier .t-size { font-size: 13px; color: var(--muted); text-align: end; white-space: nowrap; }
+  .tier.recommended .t-name::after { content: attr(data-rec); margin-inline-start: 8px; font-size: 12px; color: var(--privacy); font-weight: 500; }
+  .tier.cached .t-size::after { content: attr(data-cached); display: block; color: var(--privacy); }
+  .sysinfo { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 13px; }
+  .sysinfo dt { color: var(--muted); }
+  .sysinfo dd { margin: 0; }
+  .sysinfo dd.bad { color: var(--danger); }
+  .callout { padding: 12px 14px; border-radius: var(--radius); background: var(--privacy-soft); color: var(--privacy); font-size: 14px; line-height: 1.5; }
+  .callout.warn { background: var(--casual-soft); color: var(--casual); }
+  .callout.danger { background: var(--danger-soft); color: var(--danger); }
+  .progress-line { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--muted); }
+  .progress-line .bar { flex: 1; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+  .progress-line .bar > i { display: block; height: 100%; width: 0; background: var(--formal); transition: width .3s; }
+  .settings-grid { display: flex; flex-direction: column; gap: 16px; }
+  .settings-grid .field select { max-width: 320px; }
+
+  @media (max-width: 860px) {
+    body { height: auto; min-height: 100vh; overflow: auto; }
+    .top { flex-wrap: wrap; gap: 10px; }
+    .top .small { display: none; }
+    .work { grid-template-columns: 1fr; overflow: visible; }
+    .rail { border-inline-end: 0; border-bottom: 1px solid var(--line); }
+    .rail-scroll { overflow: visible; }
+    .row, .review-head { grid-template-columns: 1fr; }
+    .cell.src { border-inline-end: 0; border-bottom: 1px dashed var(--line); }
+    .review-head > div:last-child { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand" aria-label="Nabra">
+    <span class="latin">Nabra</span>
+    <span class="arabic">نبرة</span>
+  </div>
+  <span class="muted small" data-i18n="tagline">Private translator. Nothing leaves this PC.</span>
+  <div class="spacer"></div>
+  <button class="pill" id="modelPill" type="button" aria-live="polite">
+    <span class="dot" aria-hidden="true"></span>
+    <span id="modelPillText" data-i18n="engine.none">No engine yet</span>
+  </button>
+  <button class="btn quiet" id="settingsBtn" type="button" data-i18n="settings">Settings</button>
+  <div class="lang-toggle" role="group" aria-label="Interface language">
+    <button type="button" data-ui="en" aria-pressed="true">EN</button>
+    <button type="button" data-ui="ar" aria-pressed="false">عربي</button>
+  </div>
+</header>
+
+<main class="work">
+  <aside class="rail" aria-label="Translation setup">
+   <div class="rail-scroll">
+    <div class="pair">
+      <div class="field">
+        <label for="srcLang" data-i18n="from">From</label>
+        <select id="srcLang"></select>
+      </div>
+      <button class="swap" id="swapBtn" type="button" title="Swap languages" aria-label="Swap languages">⇄</button>
+      <div class="field">
+        <label for="tgtLang" data-i18n="to">To</label>
+        <select id="tgtLang"></select>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="label" id="dialLabel" data-i18n="register">Tone and register</span>
+      <div class="dial" id="dial" role="radiogroup" aria-labelledby="dialLabel"></div>
+    </div>
+
+    <div class="field" id="varietyField">
+      <label for="variety" data-i18n="variety">Arabic variety</label>
+      <select id="variety"></select>
+    </div>
+
+    <div class="field">
+      <label for="address" data-i18n="address">Addressing the reader</label>
+      <select id="address"></select>
+    </div>
+
+    <div class="field">
+      <label for="audience" data-i18n="audience">Audience and purpose (optional)</label>
+      <input type="text" id="audience" dir="auto" data-i18n-placeholder="audience.ph" placeholder="e.g. Email to a bank's compliance team">
+    </div>
+
+    <label class="check">
+      <input type="checkbox" id="localize">
+      <span data-i18n="localize">Localize cultural references</span>
+    </label>
+
+    <div class="field">
+      <label for="glossary" data-i18n="glossary">Glossary — one term per line</label>
+      <textarea id="glossary" rows="3" dir="auto" data-i18n-placeholder="glossary.ph" placeholder="Nabra = keep&#10;board of directors = مجلس الإدارة"></textarea>
+      <button class="btn quiet small" id="suggestGlossary" type="button" data-i18n="glossary.suggest">Suggest terms from the text</button>
+    </div>
+   </div>
+
+    <div class="actions">
+      <button class="btn primary wide" id="runBtn" type="button" data-i18n="translate">Translate</button>
+      <button class="btn danger wide hidden" id="stopBtn" type="button" data-i18n="stop">Stop</button>
+      <p class="small muted" id="runHint" data-i18n="run.hint">Ctrl+Enter also starts the translation.</p>
+    </div>
+  </aside>
+
+  <section class="stage" aria-label="Workspace">
+    <div class="stage-bar">
+      <button class="btn" id="openBtn" type="button" data-i18n="open">Open file…</button>
+      <input type="file" id="fileInput" class="hidden" accept=".txt,.md,.docx,.pdf,.srt,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+      <span class="filechip hidden" id="fileChip"><span id="fileChipText"></span><button class="btn quiet" id="clearFile" type="button" data-i18n="clear" title="Remove file">✕</button></span>
+      <div class="spacer"></div>
+      <button class="btn hidden" id="editBtn" type="button" data-i18n="edit">Edit source</button>
+      <button class="btn hidden" id="copyAllBtn" type="button" data-i18n="copy.all">Copy result</button>
+      <button class="btn hidden" id="downloadBtn" type="button" data-i18n="download">Download</button>
+      <select class="hidden" id="downloadFormat" aria-label="Download format"></select>
+    </div>
+
+    <div class="compose" id="compose">
+      <textarea id="source" dir="auto" data-i18n-placeholder="source.ph" placeholder="Paste text here, or open a .docx, .pdf, .txt, .md or .srt file. Then pick the tone on the left and press Translate."></textarea>
+      <div class="foot">
+        <span id="wordCount"></span>
+        <span id="sourceNote"></span>
+      </div>
+    </div>
+
+    <div class="review hidden" id="review">
+      <div class="review-head"><div data-i18n="col.source">Source</div><div data-i18n="col.result">Result</div></div>
+      <div id="rows"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="status" id="status" aria-live="polite">
+  <span id="statusText" data-i18n="status.idle">Ready.</span>
+  <div class="bar hidden" id="statusBar"><i></i></div>
+  <span id="statusRate"></span>
+</footer>
+
+<dialog id="setupDlg" aria-labelledby="setupTitle">
+  <form class="dlg" method="dialog" id="setupForm">
+    <h2 id="setupTitle" data-i18n="setup.title">Choose the translation engine</h2>
+    <p class="muted" data-i18n="setup.intro">The engine is an AI language model that runs on this PC's graphics chip. It is downloaded once and never sends your text anywhere.</p>
+    <dl class="sysinfo" id="sysinfo"></dl>
+    <div class="callout danger hidden" id="noGpu" data-i18n="setup.nogpu">This PC does not expose WebGPU, so the engine cannot run here. Update Windows and the graphics driver, or try another PC.</div>
+    <div class="tiers" id="tiers" role="radiogroup"></div>
+    <div class="progress-line hidden" id="setupProgress"><div class="bar"><i></i></div><span id="setupProgressText"></span></div>
+    <div class="callout danger hidden" id="setupError"></div>
+    <div class="dlg-foot">
+      <span class="spacer"></span>
+      <button class="btn" type="button" id="setupCancel" data-i18n="later">Later</button>
+      <button class="btn primary" type="button" id="setupGo" data-i18n="setup.go">Download and start</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="settingsDlg" aria-labelledby="settingsTitle">
+  <div class="dlg settings-grid">
+    <h2 id="settingsTitle" data-i18n="settings">Settings</h2>
+    <div class="field">
+      <span class="label" data-i18n="settings.engine">Engine</span>
+      <p id="settingsEngine" class="small"></p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap">
+        <button class="btn" type="button" id="changeModel" data-i18n="settings.change">Change engine…</button>
+        <button class="btn danger" type="button" id="deleteModel" data-i18n="settings.delete">Delete downloaded engine</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="notesLang" data-i18n="settings.notes">Language of idiom notes</label>
+      <select id="notesLang">
+        <option value="en">English</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
+    <div class="field">
+      <span class="label" data-i18n="settings.memory">Translation memory</span>
+      <p class="small muted" data-i18n="settings.memory.hint">Sentences you have already translated are reused instantly in later documents. Stored on this PC only.</p>
+      <div><button class="btn" type="button" id="clearTm" data-i18n="settings.memory.clear">Clear memory</button></div>
+    </div>
+    <div class="field">
+      <span class="label" data-i18n="about">About</span>
+      <p class="small muted" id="aboutText"></p>
+    </div>
+    <div class="dlg-foot"><button class="btn primary" type="button" id="settingsClose" data-i18n="close">Close</button></div>
+  </div>
+</dialog>
+
+<dialog id="msgDlg" aria-labelledby="msgTitle">
+  <div class="dlg">
+    <h2 id="msgTitle"></h2>
+    <p id="msgBody"></p>
+    <div class="dlg-foot">
+      <button class="btn" type="button" id="msgCancel" data-i18n="cancel">Cancel</button>
+      <button class="btn primary" type="button" id="msgOk" data-i18n="ok">OK</button>
+    </div>
+  </div>
+</dialog>
+
+<script src="vendor/jszip.min.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

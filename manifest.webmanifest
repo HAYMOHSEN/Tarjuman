@@ -1,0 +1,32 @@
+{
+  "id": "/nabra/",
+  "name": "Nabra — Private Translator",
+  "short_name": "Nabra",
+  "description": "Offline AI translator that adapts tone and register, explains idioms and cultural references, and translates whole Word, PDF, text and subtitle files. Nothing leaves your PC.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#EEF1F5",
+  "theme_color": "#182033",
+  "lang": "en",
+  "dir": "auto",
+  "categories": ["productivity", "utilities", "business"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "file_handlers": [
+    {
+      "action": "./",
+      "accept": {
+        "text/plain": [".txt"],
+        "text/markdown": [".md"],
+        "application/pdf": [".pdf"],
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+        "application/x-subrip": [".srt"]
+      }
+    }
+  ]
+}
