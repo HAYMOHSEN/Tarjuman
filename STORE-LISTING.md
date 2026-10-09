@@ -36,7 +36,8 @@ voice:
 - Casual — friends: warm and conversational. For messages and personal notes.
 - Marketing: short, punchy, persuasive. For ads, posts and product copy.
 - Literary: for poetry, stories and lyrical prose — every image stays an image, verse keeps its
-  lines, and a "Polish" pass revises any paragraph like a literary editor.
+  lines, a "Polish" pass revises any paragraph like a literary editor, and a fidelity check
+  lists anything left out, added or changed and repairs it before you see it.
 
 Choose how the reader is addressed (formal "vous / Sie / حضرتكم" or informal), add a one-line note
 about the audience, and for Arabic pick Modern Standard, simplified Standard, or an experimental
@@ -102,6 +103,7 @@ Nabra contains no accounts, no ads, no analytics and no tracking.
 - Formal or informal address, audience note, Arabic variety (Standard, simplified, colloquial)
 - Idioms and proverbs translated by meaning, with an "Explain idioms" review per paragraph (wordplay included)
 - Literary mode for poetry and prose, with a per-paragraph "Polish" pass
+- Fidelity check: a reviewer pass lists what was left out, added or changed, and repairs it automatically
 - Low-memory mode and automatic release of graphics memory when idle
 - Localize cultural references for the target reader
 - Word (.docx) files keep styles, headings, numbering and tables; RTL layout set automatically

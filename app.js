@@ -5,7 +5,7 @@ import * as webllm from './vendor/web-llm.js';
 import * as core from './core.js';
 import * as docxlib from './docx.js';
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 
 /* ---------- Interface strings ---------- */
 
@@ -79,6 +79,19 @@ const STRINGS = {
     'row.explain': 'Explain idioms',
     'row.copy': 'Copy',
     'row.polish': 'Polish',
+    'row.check': 'Check fidelity',
+    'status.checking': 'Checking fidelity — paragraph {n} of {total}',
+    'status.checked': 'Done — {n} paragraphs checked, {r} repaired, {f} still flagged',
+    'fidelity.ok': 'Faithful to the source.',
+    'fidelity.repaired': 'Repaired automatically. Remaining notes:',
+    'fidelity.repaired.ok': 'Repaired automatically — now faithful to the source.',
+    'fidelity.found': 'Fidelity check:',
+    'fidelity.missing': 'Missing',
+    'fidelity.added': 'Added',
+    'fidelity.changed': 'Changed',
+    'fidelity.note': 'Note',
+    'settings.autocheck': 'After translating in the literary register, check fidelity and repair automatically',
+    'settings.autocheck.hint': 'Two extra passes per paragraph: a reviewer lists what is missing, added or changed, then the translation is corrected. Slower, much safer for poetry and prose.',
     'status.polishing': 'Polishing paragraph {n}…',
     'settings.lowmem': 'Low-memory mode',
     'settings.lowmem.hint': 'Uses a shorter context window and smaller chunks: a few hundred MB less graphics memory, same engine, same quality. Takes effect the next time the engine loads.',
@@ -183,6 +196,19 @@ const STRINGS = {
     'row.explain': 'شرح التعابير',
     'row.copy': 'نسخ',
     'row.polish': 'صقل',
+    'row.check': 'فحص الأمانة',
+    'status.checking': 'جارٍ فحص الأمانة — الفقرة {n} من {total}',
+    'status.checked': 'اكتملت — فُحصت {n} فقرة، أُصلحت {r}، وبقيت {f} عليها ملاحظات',
+    'fidelity.ok': 'مطابقة للأصل.',
+    'fidelity.repaired': 'أُصلحت تلقائياً. ملاحظات متبقية:',
+    'fidelity.repaired.ok': 'أُصلحت تلقائياً — صارت مطابقة للأصل.',
+    'fidelity.found': 'فحص الأمانة:',
+    'fidelity.missing': 'ناقص',
+    'fidelity.added': 'زائد',
+    'fidelity.changed': 'تغيّر',
+    'fidelity.note': 'ملاحظة',
+    'settings.autocheck': 'بعد الترجمة بالنبرة الأدبية، افحص الأمانة وأصلح تلقائياً',
+    'settings.autocheck.hint': 'مروران إضافيان لكل فقرة: مراجع يعدّ ما ضاع وما أُضيف وما تغيّر، ثم تُصحَّح الترجمة. أبطأ، وأكثر أماناً للشعر والنثر.',
     'status.polishing': 'جارٍ صقل الفقرة {n}…',
     'settings.lowmem': 'وضع الذاكرة المنخفضة',
     'settings.lowmem.hint': 'يستخدم نافذة سياق أقصر ومقاطع أصغر: بضع مئات من الميغابايت أقل من ذاكرة الرسوم، بالمحرّك نفسه والجودة نفسها. يسري عند تحميل المحرّك في المرة التالية.',
@@ -229,6 +255,7 @@ const state = {
   modelState: 'none', // none | loading | ready | sleeping | error
   lowMemory: localStorage.getItem('nabra.lowmem') === '1',
   idleRelease: localStorage.getItem('nabra.idle') === '1',
+  autoCheck: localStorage.getItem('nabra.autocheck') !== '0',
   idleTimer: null,
   modelProgress: 0,
   engine: null,
@@ -272,6 +299,7 @@ function applyLanguage() {
   $('#notesLang').value = state.notesLang || state.ui;
   $('#lowMem').checked = state.lowMemory;
   $('#idleRelease').checked = state.idleRelease;
+  $('#autoCheck').checked = state.autoCheck;
   if (state.mode === 'review') renderRows();
 }
 
@@ -528,7 +556,7 @@ async function ensureEngine() {
 }
 
 function temperatureFor(card) {
-  return card.register === 'literary' ? 0.45 : 0.2;
+  return card.register === 'literary' ? 0.3 : 0.2;
 }
 
 /** The text actually sent to the engine: Arabic diacritics are dropped (far fewer tokens, same letters). */
@@ -783,15 +811,17 @@ function renderRows() {
     const tools = document.createElement('div');
     tools.className = 'rowtools';
     tools.dir = document.documentElement.dir || 'ltr';
-    tools.innerHTML = `<button class="btn quiet" type="button" data-act="redo"></button><button class="btn quiet" type="button" data-act="polish"></button><button class="btn quiet" type="button" data-act="explain"></button><button class="btn quiet" type="button" data-act="copy"></button>`;
+    tools.innerHTML = `<button class="btn quiet" type="button" data-act="redo"></button><button class="btn quiet" type="button" data-act="polish"></button><button class="btn quiet" type="button" data-act="check"></button><button class="btn quiet" type="button" data-act="explain"></button><button class="btn quiet" type="button" data-act="copy"></button>`;
     tools.querySelector('[data-act="redo"]').textContent = t('row.redo');
     tools.querySelector('[data-act="polish"]').textContent = t('row.polish');
+    tools.querySelector('[data-act="check"]').textContent = t('row.check');
     tools.querySelector('[data-act="explain"]').textContent = t('row.explain');
     tools.querySelector('[data-act="copy"]').textContent = t('row.copy');
     tools.addEventListener('click', (e) => {
       const act = e.target.dataset.act;
       if (act === 'redo') redoBlock(i);
       else if (act === 'polish') polishBlock(i);
+      else if (act === 'check') checkBlockManual(i);
       else if (act === 'explain') explainBlock(i);
       else if (act === 'copy') copyText(blockOutput(i).text);
     });
@@ -838,6 +868,126 @@ async function runTranslation() {
   setMode('review');
   renderRows();
   await runSegments(card, segments, { useMemory: true, temperature: temperatureFor(card) });
+  if (card.register === 'literary' && state.autoCheck && !state.abort) await checkAllBlocks(card);
+}
+
+async function checkAllBlocks(card) {
+  const total = state.blocks.length;
+  state.running = true;
+  state.abort = false;
+  $('#runBtn').classList.add('hidden');
+  $('#stopBtn').classList.remove('hidden');
+  let repaired = 0;
+  let flagged = 0;
+  try {
+    for (let i = 0; i < total; i++) {
+      if (state.abort) break;
+      setStatus(t('status.checking', { n: i + 1, total }), { progress: i / total });
+      const r = await checkBlock(i, card, { repair: true });
+      if (r && r.repaired) repaired++;
+      if (r && core.hasIssues(r.remaining)) flagged++;
+    }
+  } catch (err) {
+    console.error(err);
+    setStatus(t('error.generic', { msg: String(err && err.message || err) }));
+    return;
+  } finally {
+    state.running = false;
+    $('#runBtn').classList.remove('hidden');
+    $('#stopBtn').classList.add('hidden');
+  }
+  if (!state.abort) setStatus(t('status.checked', { n: total, r: repaired, f: flagged }));
+}
+
+/** Compare a block's translation with its source; optionally repair once and re-check. */
+async function checkBlock(i, card, { repair = true } = {}) {
+  const block = state.blocks[i];
+  const { text: draft, done } = blockOutput(i);
+  if (!done || !draft.trim()) return null;
+  const notesLang = state.notesLang || state.ui;
+  const src = modelText(block.text);
+  const runCheck = async (translation) => core.parseCheck(await generate(
+    core.buildCheckMessages(card, src, translation, notesLang),
+    { temperature: 0.1, maxTokens: 500 },
+  ));
+  showFidelity(i, null, { working: true });
+  let check = await runCheck(draft);
+  let repaired = false;
+  if (repair && core.hasIssues(check) && !state.abort) {
+    const raw = await generate(core.buildRepairMessages(card, src, draft, check), {
+      temperature: 0.2,
+      maxTokens: maxTokensFor(block.text.length),
+    });
+    const fixed = core.cleanTranslation(raw, block.text);
+    if (fixed && fixed !== draft && !state.abort) {
+      block.segmentIds.forEach((id, k) => { state.translations[id] = k === 0 ? fixed : ''; });
+      if (block.segmentIds.length === 1) tm.put(core.tmKey(card, state.segments[block.segmentIds[0]].text), fixed);
+      paintRow(i);
+      repaired = true;
+      check = await runCheck(fixed);
+    }
+  }
+  showFidelity(i, check, { repaired });
+  return { repaired, remaining: check };
+}
+
+function showFidelity(i, check, { working = false, repaired = false } = {}) {
+  const row = $(`#rows .row[data-block="${i}"]`);
+  if (!row) return;
+  const out = row.querySelector('.cell.out');
+  let box = out.querySelector('.fidelity');
+  if (!box) {
+    box = document.createElement('div');
+    box.className = 'fidelity';
+    out.insertBefore(box, out.querySelector('.rowtools'));
+  }
+  box.dir = (state.notesLang || state.ui) === 'ar' ? 'rtl' : 'ltr';
+  box.classList.remove('ok', 'warn');
+  if (working) {
+    box.innerHTML = `<span class="n-empty">${t('row.check')}…</span>`;
+    return;
+  }
+  const issues = core.hasIssues(check);
+  box.classList.add(issues ? 'warn' : 'ok');
+  if (!issues) {
+    box.textContent = repaired ? t('fidelity.repaired.ok') : t('fidelity.ok');
+    return;
+  }
+  box.innerHTML = '';
+  const head = document.createElement('div');
+  head.className = 'f-head';
+  head.textContent = repaired ? t('fidelity.repaired') : t('fidelity.found');
+  box.appendChild(head);
+  const ul = document.createElement('ul');
+  const add = (label, items) => items.forEach((x) => {
+    const li = document.createElement('li');
+    const b = document.createElement('b');
+    b.textContent = label + ': ';
+    li.appendChild(b);
+    li.appendChild(document.createTextNode(x));
+    ul.appendChild(li);
+  });
+  add(t('fidelity.missing'), check.missing);
+  add(t('fidelity.added'), check.added);
+  add(t('fidelity.changed'), check.changed);
+  add(t('fidelity.note'), check.other);
+  box.appendChild(ul);
+}
+
+async function checkBlockManual(i) {
+  if (state.running) { setStatus(t('engine.busy')); return; }
+  if (!(await ensureEngine())) return;
+  state.running = true;
+  state.abort = false;
+  setStatus(t('status.checking', { n: i + 1, total: state.blocks.length }), { indeterminate: true });
+  try {
+    await checkBlock(i, state.card, { repair: true });
+    setStatus(t('status.idle'));
+  } catch (err) {
+    setStatus(t('error.generic', { msg: String(err && err.message || err) }));
+  } finally {
+    state.running = false;
+  }
 }
 
 async function runSegments(card, segments, { useMemory = true, temperature = 0.2 } = {}) {
@@ -1274,6 +1424,10 @@ function wire() {
     state.lowMemory = e.target.checked;
     localStorage.setItem('nabra.lowmem', state.lowMemory ? '1' : '0');
   });
+  $('#autoCheck').addEventListener('change', (e) => {
+    state.autoCheck = e.target.checked;
+    localStorage.setItem('nabra.autocheck', state.autoCheck ? '1' : '0');
+  });
   $('#idleRelease').addEventListener('change', (e) => {
     state.idleRelease = e.target.checked;
     localStorage.setItem('nabra.idle', state.idleRelease ? '1' : '0');
@@ -1357,6 +1511,6 @@ async function init() {
 }
 
 /* Debug hook: lets a test harness inspect state or plug in a fake engine. */
-window.nabra = { state, runTranslation, loadFile, setMode, updatePill, releaseEngine };
+window.nabra = { state, runTranslation, loadFile, setMode, updatePill, releaseEngine, checkBlock };
 
 init();

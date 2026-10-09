@@ -174,3 +174,21 @@ t('literary register, verse detection, tashkeel', () => {
   assert.ok(core.buildBatchMessages(card, [jinas, 'x'])[0].content.includes('The text is verse'));
 });
 console.log(`\n${n} tests passed`);
+
+t('fidelity check parsing and repair prompt', () => {
+  assert.ok(!core.hasIssues(core.parseCheck('OK')));
+  assert.ok(!core.hasIssues(core.parseCheck('<think>..</think>\nok.')));
+  const c = core.parseCheck('- MISSING: كلما حاولت\nADDED: melody\n**Changed**: واهٍ → futile\nsome free remark');
+  assert.deepEqual(c.missing, ['كلما حاولت']);
+  assert.deepEqual(c.added, ['melody']);
+  assert.deepEqual(c.changed, ['واهٍ → futile']);
+  assert.deepEqual(c.other, ['some free remark']);
+  const card = { source: 'ar', target: 'en', register: 'literary' };
+  const rep = core.buildRepairMessages(card, 'src', 'draft', c);
+  assert.ok(rep[0].content.includes('MISSING from the draft: كلما حاولت') && rep[0].content.includes('ADDED by the draft'));
+  assert.ok(rep[1].content === 'Source:\nsrc\n\nDraft:\ndraft');
+  const chk = core.buildCheckMessages(card, 's', 't', 'ar')[0].content;
+  assert.ok(chk.includes('MISSING:') && chk.includes('Arabic'));
+  assert.ok(core.buildSystemPrompt(card).includes('Fidelity comes first'));
+});
+console.log(`${n} tests passed (incl. fidelity)`);

@@ -27,7 +27,7 @@ nabra/
    `https://haymohsen.github.io/nabra/`.
 2. Open that URL in Edge once and run a short translation: the first run downloads the chosen engine
    (0.6–5 GB) from the model repository and caches it in the browser.
-3. Package with PWABuilder (Windows), app version `1.1.0` / classic `1.1.0`, and submit in Partner
+3. Package with PWABuilder (Windows), app version `1.2.0` / classic `1.2.0`, and submit in Partner
    Center. The listing text and system requirements are in `STORE-LISTING.md`; the privacy policy URL
    is `https://haymohsen.github.io/nabra/privacy.html`.
 
@@ -49,6 +49,11 @@ nabra/
   temperature, and the per-paragraph "Polish" button (`core.buildPolishMessages`) revises a draft
   like a literary editor. "Explain idioms" also reports wordplay (jinās, tawriya) with every sense
   of the repeated words.
+* **Fidelity check** — in the literary register (and on demand via "Check fidelity" on any row) a
+  reviewer pass (`core.buildCheckMessages`) lists what the translation left out, added or changed;
+  if anything is found, a repair pass (`core.buildRepairMessages`) rewrites the translation with
+  those findings as constraints and the result is checked again. The row shows the outcome
+  (green: faithful; red: remaining notes). Automatic checking can be switched off in Settings.
 * **Arabic diacritics** — `core.prepareForModel` strips tashkeel before text reaches the engine
   (about a third fewer characters, far fewer tokens) except where stripping would make distinct
   words identical (jinās), in which case the vocalized text is kept. The displayed source is never

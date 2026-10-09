@@ -57,7 +57,7 @@ export const REGISTERS = {
   literary: {
     en: 'Literary — poetry and prose', ar: 'أدبي — شعر ونثر فني',
     hint_en: 'Verse, stories, lyrical prose', hint_ar: 'الشعر والقصص والنثر الشعري',
-    rule: 'Literary register, as a published literary translator would write: every image, metaphor and symbol is carried across as an image, never explained, simplified or replaced by its plain meaning; keep the order of the images and the rhythm of the sentences; prefer one precise, evocative word to a safe paraphrase; keep the elevated or archaic diction where the source has it; keep ambiguity ambiguous; no clichés, no added connectors, no softening of grief, violence or desire.',
+    rule: 'Literary register, as a published literary translator would write: every image, metaphor and symbol is carried across as an image, never explained, simplified or replaced by its plain meaning; keep the order of the images and the rhythm of the sentences; prefer one precise, evocative word to a safe paraphrase; keep the elevated or archaic diction where the source has it; keep ambiguity ambiguous; no clichés, no added connectors, no softening of grief, violence or desire. Fidelity comes first: never add an image, sound, colour, object or feeling the source lacks, and never drop the speaker, the tense, a verb or a clause — a beautiful line that says something else is a failed translation.',
   },
 };
 
@@ -201,6 +201,65 @@ export function buildPolishMessages(card, sourceText, draft) {
     'Keep every fact, name, number and the line and paragraph structure unchanged.',
     `Output only the revised ${tgt.name} text, nothing else.`,
   ].join('\n');
+  const user = `Source:\n${sourceText}\n\nDraft:\n${draft}`;
+  return [
+    { role: 'system', content: system },
+    { role: 'user', content: user },
+  ];
+}
+
+export function buildCheckMessages(card, sourceText, translation, notesLang) {
+  const tgt = languageByCode(card.target);
+  const notes = notesLang === 'ar' ? 'Arabic' : 'English';
+  const system = [
+    'You are a strict translation quality checker.',
+    `The user gives a source paragraph and its translation into ${tgt.name}. Compare them element by element: the speaker or person, the tense, every verb, every noun, every image, negations, quantities, and each clause.`,
+    'Report only real problems, one per line, in exactly one of these forms:',
+    'MISSING: <element of the source that the translation leaves out>',
+    'ADDED: <element of the translation that has no basis in the source>',
+    'CHANGED: <source element> → <what the translation turned it into>',
+    `Quote the elements in their own language and write any short comment in ${notes}. Ignore word order, synonyms and stylistic choices that keep the meaning.`,
+    'If the translation is faithful, reply with the single word OK.',
+  ].join('\n');
+  const user = `Source:\n${sourceText}\n\nTranslation:\n${translation}`;
+  return [
+    { role: 'system', content: system },
+    { role: 'user', content: user },
+  ];
+}
+
+export function parseCheck(output) {
+  const text = stripThinking(output).trim();
+  const result = { missing: [], added: [], changed: [], other: [] };
+  if (!text || /^ok[.!]?$/i.test(text) || /^(لا (يوجد|توجد)|سليمة|مطابقة)/.test(text)) return result;
+  for (const raw of text.split('\n')) {
+    const line = raw.replace(/^\s*[-*•\d.)]+\s*/, '').trim();
+    if (!line || /^ok[.!]?$/i.test(line)) continue;
+    const m = line.match(/^\**\s*(missing|added|changed|ناقص|زائد|تغيّر|تغير)\s*\**\s*[:：]\s*(.+)$/i);
+    if (!m) { result.other.push(line); continue; }
+    const kind = m[1].toLowerCase();
+    const body = m[2].trim();
+    if (kind === 'missing' || kind === 'ناقص') result.missing.push(body);
+    else if (kind === 'added' || kind === 'زائد') result.added.push(body);
+    else result.changed.push(body);
+  }
+  return result;
+}
+
+export function hasIssues(check) {
+  return !!(check && (check.missing.length || check.added.length || check.changed.length || check.other.length));
+}
+
+export function buildRepairMessages(card, sourceText, draft, check) {
+  const tgt = languageByCode(card.target);
+  const lines = [];
+  check.missing.forEach((x) => lines.push(`MISSING from the draft: ${x}`));
+  check.added.forEach((x) => lines.push(`ADDED by the draft without basis in the source: ${x}`));
+  check.changed.forEach((x) => lines.push(`CHANGED meaning: ${x}`));
+  check.other.forEach((x) => lines.push(`NOTE: ${x}`));
+  const system = buildSystemPrompt(card, { verse: looksLikeVerse(sourceText) })
+    + '\nA reviewer compared a draft translation with the source and found these problems:\n' + lines.join('\n')
+    + `\nProduce a corrected ${tgt.name} translation that fixes every listed problem — restore what is missing, remove what was added, correct what was changed — and keeps everything else of the draft that was right. Output only the corrected translation.`;
   const user = `Source:\n${sourceText}\n\nDraft:\n${draft}`;
   return [
     { role: 'system', content: system },
