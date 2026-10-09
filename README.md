@@ -27,7 +27,7 @@ nabra/
    `https://haymohsen.github.io/nabra/`.
 2. Open that URL in Edge once and run a short translation: the first run downloads the chosen engine
    (0.6–5 GB) from the model repository and caches it in the browser.
-3. Package with PWABuilder (Windows), app version `1.2.0` / classic `1.2.0`, and submit in Partner
+3. Package with PWABuilder (Windows), app version `1.2.1` / classic `1.2.1`, and submit in Partner
    Center. The listing text and system requirements are in `STORE-LISTING.md`; the privacy policy URL
    is `https://haymohsen.github.io/nabra/privacy.html`.
 
